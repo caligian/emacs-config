@@ -60,8 +60,8 @@
 (global-display-line-numbers-mode)
 (set-frame-font "Fira Code 13" nil t)
 (set-language-environment "utf-8")
-(set-frame-parameter nil 'alpha-background 95)
-(add-to-list 'default-frame-alist '(alpha-background . 95))
+(set-frame-parameter nil 'alpha-background 96)
+(add-to-list 'default-frame-alist '(alpha-background . 96))
 (pixel-scroll-precision-mode t)
 (global-auto-revert-mode 1)
 

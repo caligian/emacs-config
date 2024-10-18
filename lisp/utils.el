@@ -22,7 +22,6 @@
      (apply #'set-instance-attributes ,obj ',kvs)
      ,obj)))
 
-
 (defmacro add-hook! (&rest forms)
   (let* ((HOOK (gensym))
 	 (BODY (gensym))
@@ -74,7 +73,6 @@
 		    ((and start-keyword-index (< i start-keyword-index))
 		     (setq pos-args (append@ pos-args v)))
 		    ((keyword? v)
-		     (message "%s" v)
 		     (setq last-symbol v)
 		     (fset% parsed v '()))
 		    (last-symbol
@@ -103,3 +101,4 @@
 (defalias 'string? 'stringp)
 (defalias 'buffer? 'bufferp)
 (defalias 'command? 'commandp)
+(defalias 'function? 'functionp)

@@ -98,7 +98,7 @@
 
 (use-package kaolin-themes
   :config
-  (load-theme 'kaolin-dark t)
+  (load-theme 'kaolin-light t)
   (kaolin-treemacs-theme))     
 
 (use-package ivy
