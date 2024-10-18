@@ -4,12 +4,7 @@
   (set% user-packages name (last@ (apply 'parse-arguments args))))
 
 (defun user-package->use-package (name form)
-  (let* ((final-form `(use-package ,name)))
-    (each% form
-	   (lambda (k v)
-	     (setq final-form (append@ final-form k))
-	     (setq final-form (append final-form v))))
-    final-form))
+  (flatten-arguments form (list name)))
 
 (defun eval-user-package (name form)
   (eval (user-package->use-package name form)))

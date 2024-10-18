@@ -34,32 +34,6 @@
 	  :documentation "all hooks for this name")))
 
 
-;; (lang!
-;;  :major-mode python-mode
-;;  :keymap python-mode-map
-;;  :formatter "cat %path | autopep8 -"
-;;  :workspace-check-depth 5
-;;  :workspace ("\\.git")
-;;  :lsp "pyright"
-;;  :compile
-;;  ((workspace "cd %path && python3 main.py")
-;;   (cwd "cd %path && python3 main.py")
-;;   (buffer "python3 %path"))
-;;  :repl
-;;  ((workspace "cd %path && python3")
-;;   (cwd "cd %path && python3")
-;;   (buffer "python3 %path"))
-;;  :map
-;;  ((normal
-;;    :prefix "SPC"
-;;    "cc" python-compile-buffer)
-;;   (visual
-;;    :prefix "SPC"
-;;    "ee" send-region-to-python-process))
-;;  :hooks
-;;  (setq python-inferior-process "ipython3")
-;;  (auto-fill-mode -1))
-
 (cl-defmethod lang-set-mappings ((obj lang))
   (let* ((mode (%. obj 'major-mode))
 	 (mode-map (intern (concat (symbol-name mode) "-map")))

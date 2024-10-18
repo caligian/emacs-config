@@ -169,15 +169,6 @@
 	(progn (ht-remove! found (last@ ks))
 	       found))))
 
-(defun copy-append@ (lst &rest elems)
-  (append lst elems))
-
-(defun copy-lappend@ (lst &rest elems)
-  (let* ((out lst))
-    (dolist (e (reverse elems))
-      (setq out (push e lst)))
-    out))
-
 (defun take@ (lst n)
   (-take n lst))
 
@@ -357,8 +348,15 @@
 	(ht-set out k (funcall default-fn))))
     out))
 
-(defun singleton? (lst)
-  (= (length lst) 1))
+(defun singleton? (s-or-lst-or-h)
+  (if (or (list? s-or-lst-or-h)
+	  (string? s-or-lst-or-h))
+      (= (length lst) 1)
+    (= 1 (length (keys% s-or-lst-or-h)))))
+
+(defun set%@ (lst i k v)
+  (when-let* ((found (get@ lst i)))
+    (set% found k v)))
 
 (defun append% (h &rest ks-and-value)
   (let* ((ks (butlast ks-and-value))
@@ -369,7 +367,7 @@
 		  (found (append@ found value))
 		  (ks-and-value (append@ ks found)))
 	(apply 'set% h ks-and-value)
-	h))))
+	found))))
 
 (defun fappend% (h &rest ks-and-value)
   (if-let* ((value (last@ ks-and-value))
@@ -381,4 +379,3 @@
     (apply 'fset% h (append@ (butlast ks-and-value)
 			     (list (last@ ks-and-value)))))
   h)
-
