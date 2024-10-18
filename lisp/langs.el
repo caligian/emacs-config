@@ -26,6 +26,9 @@
    (map :initarg :map
 	:initform nil
 	:documentation "mappings")
+   (builtin-terminal :initarg :builtin-terminal
+		     :initform nil
+		     :documentation "use terminal that comes with this config")
    (hooks :initarg :hooks
 	  :initform nil
 	  :documentation "all hooks for this name")))

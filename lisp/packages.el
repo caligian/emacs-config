@@ -144,7 +144,8 @@
 (use-package yasnippet
   :config
   (yas-global-mode t)
-  (add-to-list 'company-backends 'company-yasnippet))
+  ;; (add-to-list 'company-backends 'company-yasnippet)
+  )
 
 (use-package mood-line
   :config
@@ -199,3 +200,13 @@
   :hook (python-mode . (lambda () (require 'lsp-pyright) (lsp))))
 
 (use-package auctex)
+
+(use-package ess-plot
+  :straight (ess-plot
+	     :type git
+	     :host github
+	     :repo "DennieTeMolder/ess-plot")
+  :config
+  (kbd! :keymaps 'ess-r-mode
+	:prefix "SPC m"
+	"p" 'ess-plot-toggle))

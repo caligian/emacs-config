@@ -128,6 +128,7 @@
 		       last-col)))
       `(,first-col ,last-col ,first-line ,last-line))))
 
+;; TODO
 (defun buffer-get-text (buf start-row start-col end-row end-col)
   (with-current-buffer buf
       (let* ((col-pos-with-lines (buffer--resolve-column buf
@@ -207,7 +208,8 @@
 (defun scratch-buffer-split (&optional direction)
   (let* ((direction (or direction :right))
 	 (fname "~/.emacs.d/scratch")
-	 (buf (get-buffer fname)))
+	 (buf (get-buffer fname))
+	 (win (get-buffer-window buf)))
     (with-current-buffer (current-buffer)
       (if (eq direction :right)
 	  (split-window-vertically)

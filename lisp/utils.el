@@ -31,3 +31,35 @@
        (setq ,BODY (cdr f))
        (setq ,FN (append `(lambda nil) ,BODY))
        (add-hook ,HOOK ,FN))))
+
+(defun parse-arguments (&rest args)
+  (let* ((parsed (hash-table%))
+	 (pos-args '())
+	 (args-len (length args))
+	 (start-keyword-index
+	  (cl-loop for x from 0 below args-len
+		   when (keyword? (get@ args x))
+		   return x))
+	 (last-symbol
+	  (when start-keyword-index
+	    (get@ args start-keyword-index))))
+    (eachi@ args (lambda (i v)
+		   (cond
+		    ((and start-keyword-index (< i start-keyword-index))
+		     (setq pos-args (append@ pos-args v)))
+		    ((keyword? v)
+		     (message "%s" v)
+		     (setq last-symbol v)
+		     (fset% parsed v '()))
+		    (last-symbol
+		     (append% parsed last-symbol v)))))
+      (list pos-args parsed)))
+
+(defun keywordp (symbol)
+  (and (symbolp symbol)
+       (string-match-p "^:" (symbol-name symbol))))
+
+(defalias 'keyword? 'keywordp)
+(defalias 'list? 'listp)
+(defalias 'hash-table? 'hash-table-p)
+(defalias 'symbol? 'symbolp)

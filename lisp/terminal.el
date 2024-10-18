@@ -378,3 +378,16 @@
 (defun terminal-workspace-send-buffer (&optional buf)
   (interactive)
   (terminal-buffer! buf :workspace (lambda (term) (terminal-send-buffer term))))
+
+(defgroup terminal ()
+  "Convenient global terminal"
+  :prefix "terminal-")
+
+(defvar terminal-mode-map (make-sparse-keymap))
+
+(define-minor-mode terminal-mode
+  "Toggle terminal mode"
+  :init-value nil
+  :lighter (" Term")
+  :keymap terminal-mode-map
+  :group 'terminal)

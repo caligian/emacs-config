@@ -11,6 +11,8 @@
 (straight-use-package 'general)
 (straight-use-package 'use-package)
 
+(defalias 'kbd! 'general-define-key)
+
 (require 'eieio)
 (require 'f)
 (require 'dash)
@@ -71,6 +73,7 @@
 (load-file "~/.emacs.d/lisp/terminal.el")
 (load-file "~/.emacs.d/lisp/formatter.el")
 (load-file "~/.emacs.d/lisp/packages.el")
+(load-file "~/.emacs.d/lisp/pkgs.el")
 (load-file "~/.emacs.d/lisp/compiler.el")
 (load-file "~/.emacs.d/config/keybindings.el")
 (load-file "~/.emacs.d/config/hooks.el")

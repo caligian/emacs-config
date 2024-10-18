@@ -1,4 +1,4 @@
-(general-define-key
+(kbd!
  :prefix "SPC b"
  :states '(normal)
  "m" 'bookmark-set
@@ -13,7 +13,7 @@
  "n" #'next-buffer
  "p" #'previous-buffer)
 
-(general-define-key
+(kbd!
  :prefix "SPC f"
  :states '(normal)
  "p" (lambda nil
@@ -24,7 +24,7 @@
  "F" 'find-file-read-only
  "k" 'kill-buffer)
 
-(general-define-key
+(kbd!
  :prefix "SPC w"
  :states '(normal)
  "v" 'split-window-horizontally
@@ -35,7 +35,7 @@
  "h" 'windmove-left
  "o" 'delete-other-windows)
 
-(general-define-key
+(kbd!
  :states 'normal
  :prefix "SPC t"
  "t" 'tab-new
@@ -52,7 +52,8 @@
  "f" 'find-file-other-tab
  "F" 'find-file-read-only-other-tab)
 
-(general-define-key
+(kbd!
+ :keymaps 'emacs-lisp-mode-map
  :prefix "SPC e"
  :states '(normal)
  "b" 'eval-buffer
@@ -60,30 +61,30 @@
  ":" 'eval-expression
  "d" 'eval-defun)
 
-(general-define-key
+(kbd!
  :prefix "SPC e"
  :states '(visual)
  "e" 'eval-region)
 
-(general-define-key
+(kbd!
  :prefix "SPC q"
  :states 'normal
  "q" ":qa!"
  "x" ":xa")
 
-(general-define-key
+(kbd!
  :prefix "SPC ,"
  :states 'normal
  "p" "\"+p"
  "," #'scratch-buffer-below 
  ";" #'scratch-buffer-right) 
 
-(general-define-key
+(kbd!
  :prefix "SPC ,"
  :states 'visual
  "y" "\"+y")
 
-(general-define-key
+(kbd!
  :states 'normal
  :keymaps 'emacs-lisp-mode-map
  "SPC k" (lambda ()
@@ -95,15 +96,14 @@
        (when-let* ((fn (thing-at-point 'symbol t)))
 	 (describe-function (intern fn)))))
 
-(general-define-key
+(kbd!
  :keymaps 'term-mode-map
  :states 'normal
  "q" (lambda nil
        (interactive)
        (delete-window  (get-buffer-window (current-buffer)))))
 
-(general-define-key
- :keymaps 'global
+(kbd!
  :states 'normal
  :prefix "SPC x"
  "x" (lambda ()
@@ -118,14 +118,13 @@
  "e" #'terminal-shell-send-line
  "b" #'terminal-shell-send-buffer)
 
-(general-define-key
- :keymaps 'global
+(kbd!
  :states 'visual
  :prefix "SPC x"
  "e" #'terminal-shell-send-region)
 
-(general-define-key
- :keymaps 'global
+(kbd!
+ :keymaps 'terminal-mode-map
  :states 'normal
  :prefix "SPC r"
  "r" #'terminal-workspace-start-below
@@ -136,14 +135,14 @@
  "e" #'terminal-workspace-send-line
  "b" #'terminal-workspace-send-buffer)
 
-(general-define-key
- :keymaps 'global
+(kbd!
+ :keymaps 'terminal-mode-map
  :states 'visual
  :prefix "SPC r"
  "e" #'terminal-workspace-send-region)
 
-(general-define-key
- :keymaps 'global
+(kbd!
+ :keymaps 'terminal-mode-map
  :states 'normal
  :prefix "M-SPC r"
  "r" #'terminal-buffer-start-below
@@ -154,18 +153,18 @@
  "e" #'terminal-buffer-send-line
  "b" #'terminal-buffer-send-buffer)
 
-(general-define-key
- :keymaps 'global
+(kbd!
+ :keymaps 'terminal-mode-map
  :states 'visual
  :prefix "M-SPC r"
  "e" #'terminal-buffer-send-region)
 
-(general-define-key
+(kbd!
  :states 'normal
  :prefix "SPC c"
  "c" #'compiler-compile-workspace)
 
-(general-define-key
+(kbd!
  :states 'normal
  :prefix "M-SPC c"
  "c" #'compiler-compile-buffer)

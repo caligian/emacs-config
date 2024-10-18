@@ -4,12 +4,14 @@
 ;; list functions
 ;; map@ each@ filter@ get@ set@ update@ 
 
+;; since '() == nil; do not use empty lists! this can mess up table retrieval
+
 (defalias 'items% 'ht-items)
 (defalias 'keys% 'ht-keys)
 (defalias 'values% 'ht-values)
+(defalias 'first@ 'car)
 
 (defun empty? (x &optional len-fn)
-  "fn"
   (if len-fn
       (> (funcall len-fn x) 0)
     (cond
@@ -147,19 +149,6 @@
       (progn (setf (nth last-key found) value)
 	     lst)))
 
-
-(defun map@ (lst fn)
-  (-map fn lst))
-
-(defun each@ (lst fn)
-  (-each lst fn))
-
-(defun filter@ (lst fn &optional mapfn)
-  (let* ((out (-filter fn lst)))
-    (if mapfn
-	(map@ out mapfn)
-      out)))
-
 (defun rm@ (lst &rest ks)
   (if (= (length ks) 1)
       (let* ((popped (nth (car ks) lst)))
@@ -210,8 +199,68 @@
 	     when (= (% x step) 0)
 	     collect x)))
 
+(defun filter% (h fn &optional map-fn)
+  (let* ((out (ht)))
+    (dolist (k (keys% h))
+      (when-let* ((v (get% h k))
+		  (ok? (funcall fn k v))
+		  (v (if map-fn
+			 (funcall map-fn k v)
+		       v)))
+	(set% out k v)))
+    out))
+
+(defun map% (h fn &optional map-keys?)
+  (let* ((out (ht)))
+    (dolist (k (keys% h))
+      (let* ((v (funcall fn k (get% h k))))
+	(if map-keys?
+	    (set% out (first@ v) (last@ v))
+	  (set% out k v))))   
+    out))
+
+(defun each% (h fn)
+  (let* ((out (ht)))
+    (cl-loop for k being the hash-keys of h
+	     do (funcall fn k (get% h k)))))
+
+
+(defun select@ (lst &rest ks)
+  (cl-loop for x in ks
+	   collect (apply 'get@ lst (if (listp x)
+					x
+				      (list x)))))
+(defun each@ (lst fn)
+  (cl-loop for x in lst do (funcall fn x)))
+
 (defun map@ (lst fn)
   (cl-loop for x in lst collect (funcall fn x)))
+
+(defun mapi@ (lst fn)
+  (cl-loop for x from 0 below (length lst)
+	   collect (funcall fn x (get@ lst x))))
+
+(defun eachi@ (lst fn)
+  (cl-loop for x from 0 below (length lst)
+	   do (funcall fn x (get@ lst x))))
+
+(defun filter@ (lst fn &optional map-fn)
+  (let* ((out '()))
+    (dolist (x lst)
+      (when (funcall fn x)
+	(let* ((v (if map-fn (funcall map-fn x) x)))
+	  (setq out (append@ out v)))))
+    out))
+
+(defun filteri@ (lst fn &optional map-fn)
+  (let* ((i 0)
+	 (out '()))
+    (dolist (x lst)
+      (when (funcall fn i x)
+	(let* ((v (if map-fn (funcall map-fn i x) x)))
+	  (setq out (append@ out v))))
+      (setq i (+ i 1)))
+    out))
 
 (defun select@ (lst &rest ks)
   (cl-loop for x in ks
@@ -293,3 +342,43 @@
     (dolist (e (reverse elems))
       (setq temp (push e temp)))
     temp))
+
+(cl-defun hash-table% (&optional ks &key (default-fn 'make-hash-table))
+  (let* ((out (ht)))
+    (when ks
+      (dolist (k ks)
+	(ht-set out k (funcall default-fn))))
+    out))
+
+(cl-defun list-hash-table% (&optional ks &key (default-fn 'list))
+  (let* ((out (ht)))
+    (when ks
+      (dolist (k ks)
+	(ht-set out k (funcall default-fn))))
+    out))
+
+(defun singleton? (lst)
+  (= (length lst) 1))
+
+(defun append% (h &rest ks-and-value)
+  (let* ((ks (butlast ks-and-value))
+	 (value (last@ ks-and-value)))
+    (if (singleton? ks)
+	(apply #'fappend% h ks-and-value)
+      (when-let* ((found (apply #'get% h ks))
+		  (found (append@ found value))
+		  (ks-and-value (append@ ks found)))
+	(apply 'set% h ks-and-value)
+	h))))
+
+(defun fappend% (h &rest ks-and-value)
+  (if-let* ((value (last@ ks-and-value))
+	    (ks (butlast ks-and-value))
+	    (found (apply #'get% h ks))
+	    (found (append@ found value))
+	    (-ks-and-value (append@ ks found)))
+      (apply 'set% h -ks-and-value)
+    (apply 'fset% h (append@ (butlast ks-and-value)
+			     (list (last@ ks-and-value)))))
+  h)
+
