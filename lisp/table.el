@@ -58,6 +58,23 @@
 		     (-fget% v others)))))))))
 
 
+(defun slice@ (lst &optional start end step)
+  (if (and (not start) (not end))
+      lst
+  (let* ((out '())
+	 (len (length lst))
+	 (start (or start 0))
+	 (end (or end (- len 1)))
+	 (start (if (>= start len) (- len 1) start))
+	 (end (if (>= end len) (- len 1) end))
+	 (end (if (< end 0) (+ end len) end))
+	 (start (if (< start 0) (+ start len) start))
+	 (step (or step 1)))
+    (cl-loop for x from start below end
+	     when (= 0 (% x step))
+	     do (setq out (append@ out (nth x lst))))
+    out)))
+
 (defun fget% (h &rest ks)
   (-fget% h ks))
 
@@ -351,7 +368,7 @@
 (defun singleton? (s-or-lst-or-h)
   (if (or (list? s-or-lst-or-h)
 	  (string? s-or-lst-or-h))
-      (= (length lst) 1)
+      (= (length s-or-lst-or-h) 1)
     (= 1 (length (keys% s-or-lst-or-h)))))
 
 (defun set%@ (lst i k v)
@@ -379,3 +396,103 @@
     (apply 'fset% h (append@ (butlast ks-and-value)
 			     (list (last@ ks-and-value)))))
   h)
+
+(defun plist% (&rest hs)
+  (ht->plist (apply #'merge% hs)))
+
+(defun alist% (&rest hs)
+  (ht->alist (apply #'merge% hs)))
+
+(defun from-plist% (p)
+  (ht-from-plist p))
+
+(defun from-alist% (p)
+  (ht-from-alist p))
+
+(defun %. (x &rest ks)
+  (let* ((k (car ks))
+	 (next (cdr ks)))
+    (if (not next)
+	(container-get x k)
+      (when-let* ((v (container-get x k)))
+	(when (container? v)
+	  (apply #'%. v next)))))) 
+
+(defun %%. (x &rest ks)
+  (map@ ks (lambda (k) (%. x k))))
+
+(defun %set (x &rest ks-and-value)
+  (cl-labels ((-set (X KS-AND-VALUE)
+		(let* ((value (last@ KS-AND-VALUE))
+		       (ks (butlast KS-AND-VALUE))
+		       (k (first@ ks))
+		       (next (cdr ks))
+		       (v (container-get X k)))
+		  (cond
+		   ((not next)
+		    (container-set X k value))
+		   ((container? v)
+		    (-set v (append@ next value)))))))
+    (-set x ks-and-value)))
+
+(defalias '%! '%set)
+
+(defun ->list (x)
+  (if (listp x) x (list x)))
+
+(defmacro %%set (obj &rest kvs)
+  `(cl-loop for x from 0 below (length ',kvs)
+	    when (= (% x 2) 0)
+	    collect (let* ((KEY (->list (nth x ',kvs)))
+			   (VALUE (nth (+ x 1) ',kvs)))
+		      (apply #'%set ,obj (append@ KEY VALUE)))))
+
+(defalias '%%! '%%set)
+(defalias 'as-list '->list)
+
+(defun match-table (X SPEC)
+  (cl-labels ((MATCH-TABLE (x spec)
+		(cond
+		 ((functionp spec)
+		  (and (funcall spec x) x))
+		 ((and (listp x) (listp spec))
+		  (let* ((success? t)
+			 (i 0)
+			 (x-len (length x))
+			 (spec-len (length spec))
+			 (limit (min x-len spec-len)))
+		    (while (and success? (< i limit))
+		      (let* ((x-value (nth i x))
+			     (spec-value (nth i spec)))
+			(cond
+			 ((and (container? x-value)
+			       (container? spec-value))
+			  (setq success? (MATCH-TABLE x-value spec-value)))
+			 ((and (functionp spec-value))
+			  (setq success? (funcall spec-value x-value)))
+			 (t 
+			  (setq success? (equal x-value spec-value))))
+			(setq i (+ i 1))))
+		    success?))
+		 ((and (ht-p x) (ht-p spec))
+		  (let* ((success? t)
+			 (i 0)
+			 (x-ks (keys% x))
+			 (spec-ks (keys% spec))
+			 (x-len (length x-ks))
+			 (spec-len (length spec-ks))
+			 (limit (min x-len spec-len)))
+		    (while (and success? (< i limit))
+		      (let* ((x-value (get% x (nth i x-ks)))
+			     (spec-value (get% spec (nth i spec-ks))))
+			(cond
+			 ((and (container? x-value)
+			       (container? spec-value))
+			  (setq success? (MATCH-TABLE x-value spec-value)))
+			 ((and (functionp spec-value))
+			  (setq success? (funcall spec-value x-value)))
+			 (t 
+			  (setq success? (equal x-value spec-value))))
+			(setq i (+ i 1))))
+		    success?)))))
+    (MATCH-TABLE X SPEC)))

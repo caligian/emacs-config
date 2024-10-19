@@ -9,11 +9,11 @@
 
 (use-package evil-collection
   :config
-  (require 'evil-collection))
+  (require 'evil-collection)) 
 
 (use-package evil-surround
   :config
-  (global-evil-surround-mode t))
+  (global-evil-surround-mode t)) 
 
 (use-package evil-snipe
   :config

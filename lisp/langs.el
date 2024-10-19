@@ -34,6 +34,12 @@
 	  :documentation "all hooks for this name")))
 
 
+(defun make-lang (&rest args)
+  (let* ((obj (from-plist% args)))
+    obj))
+
+(make-lang :formatter "python3" :major-mode 'python-mode)
+
 (cl-defmethod lang-set-mappings ((obj lang))
   (let* ((mode (%. obj 'major-mode))
 	 (mode-map (intern (concat (symbol-name mode) "-map")))

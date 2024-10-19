@@ -1,7 +1,43 @@
 (setq config-directory "~/.emacs.d")
 
-(defalias '%. 'slot-value)
 (defalias '%.? 'slot-exists-p)
+
+(defun container? (lst-or-h-or-obj)
+  (or
+   (listp lst-or-h-or-obj)
+   (hash-table-p lst-or-h-or-obj)
+   (eieio-object-p lst-or-h-or-obj)))
+
+(defun container-set (lst-or-h-or-obj k v)
+  (cond
+   ((listp lst-or-h-or-obj)
+    (when (and (>= k 0) (<= k (length v)))
+      (setf (nth k lst-or-h-or-obj) v)
+      lst-or-h-or-obj))
+   ((hash-table-p lst-or-h-or-obj)
+    (ht-set lst-or-h-or-obj k v)
+    lst-or-h-or-obj)
+   (t
+    (setf (slot-value lst-or-h-or-obj k) v)
+    lst-or-h-or-obj))) 
+
+(defun alistp (x)
+  (when-let* ((test (container? x))
+	      (first-value (nth 0 x)))
+  (container? first-value)))
+
+(defalias 'alist? 'alistp)
+
+(defun container-get (lst-or-h-or-obj k)
+  (cond
+   ((listp lst-or-h-or-obj)
+    (if (alist? lst-or-h-or-obj)
+	(assoc k lst-or-h-or-obj)
+      (nth k lst-or-h-or-obj)))
+   ((hash-table-p lst-or-h-or-obj)
+    (gethash k lst-or-h-or-obj))
+   (t
+    (slot-value lst-or-h-or-obj k))))
 
 (defun basename (p)
   (let* ((ps (string-split p "/"))
@@ -16,11 +52,6 @@
 	   do (setf (slot-value obj (nth i kvs))
 		    (nth (+ i 1) kvs))))
 
-(defmacro %! (obj &rest kvs)
-  (let* ((obj (if (listp obj) (eval obj) obj)))
-  `(progn
-     (apply #'set-instance-attributes ,obj ',kvs)
-     ,obj)))
 
 (defmacro add-hook! (&rest forms)
   (let* ((HOOK (gensym))
@@ -102,3 +133,4 @@
 (defalias 'buffer? 'bufferp)
 (defalias 'command? 'commandp)
 (defalias 'function? 'functionp)
+(defalias 'number? 'numberp)
