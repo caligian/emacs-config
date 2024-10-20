@@ -1,3 +1,8 @@
+(add-hook 'emacs-lisp-mode-hook
+	  (lambda nil
+	    (setq lexical-binding t)))
+
+(setq-default lexical-binding t)
 (setq straight-use-package-by-default t)
 
 ;; NECESSARY
@@ -67,13 +72,12 @@
 
 (load-file "~/.emacs.d/lisp/buffer.el")
 (load-file "~/.emacs.d/lisp/langs.el")
-
-(lang-load-directory)
-
 (load-file "~/.emacs.d/lisp/terminal.el")
 (load-file "~/.emacs.d/lisp/formatter.el")
 (load-file "~/.emacs.d/lisp/packages.el")
 (load-file "~/.emacs.d/lisp/pkgs.el")
 (load-file "~/.emacs.d/lisp/compiler.el")
-(load-file "~/.emacs.d/config/keybindings.el")
+(load-file "~/.emacs.d/config/mappings.el")
 (load-file "~/.emacs.d/config/hooks.el")
+
+(lang-load-directory)

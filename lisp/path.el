@@ -68,4 +68,3 @@
   (path-exists-in-subdir? (dirname buf)
 			  (or regex (list "\\.git"))
 			  (or depth 4)))
-

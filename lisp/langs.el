@@ -14,6 +14,12 @@
    (formatter :initarg :formatter
 	      :initform nil
 	      :documentation "code formatter commands")
+   (mode-map :initarg :mode-map
+	 :initform nil
+	 :documentation "mode-map for major-mode")
+   (mode-hook :initarg :mode-hook
+	      :initform nil
+	      :documentation "hook for major-mode")
    (repl :initarg :repl
 	 :initform '()
 	 :documentation "REPL command definitions")
@@ -32,13 +38,6 @@
    (hooks :initarg :hooks
 	  :initform nil
 	  :documentation "all hooks for this name")))
-
-
-(defun make-lang (&rest args)
-  (let* ((obj (from-plist% args)))
-    obj))
-
-(make-lang :formatter "python3" :major-mode 'python-mode)
 
 (cl-defmethod lang-set-mappings ((obj lang))
   (let* ((mode (%. obj 'major-mode))
@@ -110,23 +109,42 @@
 		   (t buf-or-symbol-or-ft))))
     (lang-buffer-command buf ft attrib type)))
 
-(defmacro lang! (&rest args)
-  (let* ((obj (apply #'lang args))
-	 (mm (%. obj 'major-mode)))
-    (set% langs mm obj)
-    (lang-add-hooks obj)
-    (lang-set-mappings obj)
-    obj))
-
 (defun lang-get-buffer-lang (&optional buf)
   (with-current-buffer (or buf (current-buffer))
     (get% langs major-mode)))
 
 (defun lang-load-directory ()
-  (-> (list-files lang-config-path)
-      (filter@
-       (lambda (x) (when (string-match-p "^[a-zA-Z0-9]*.el" x) x))
-       (lambda (x) (concat lang-config-path "/" x)))
-      (each@ #'load-file)))
+  (each@ (list-emacs-lisp-files "~/.emacs.d/ft" t)
+	 (lambda (x)
+	   (message "loading lang config from %s" x)
+	   (load-file x))))
 
 (defalias 'buffer-lang 'lang-get-buffer-lang)
+
+(defmacro lang! (&rest args)
+  (let* ((parsed (gensym))
+	 (mm (gensym))
+	 (mm-name (gensym))
+	 (hook (gensym))
+	 (map (gensym)))
+    `(progn
+       (setq ,parsed (last@ (parse-arguments! ,@args)))
+       (setq ,parsed (map% ,parsed (lambda (_ v) (if (singleton? v) (first@ v) v))))
+       (setq ,parsed (->plist% ,parsed))
+       (setq ,parsed (apply #'lang ,parsed))
+       (setq ,mm (%. ,parsed 'major-mode))
+       (setq ,mm-name (symbol-name ,mm))
+       (setq ,hook (intern (concat ,mm-name "-hook")))
+       (setq ,map (intern (concat ,mm-name "-" "map")))
+
+       (%! ,parsed 'mode-hook ,hook)
+       (%! ,parsed 'mode-map ,map)
+       (%! langs ,mm ,parsed)
+
+       (lang-add-hooks ,parsed)
+       (lang-set-mappings ,parsed)
+
+       (when (%. ,parsed 'builtin-terminal)
+	 (add-hook ,hook 'terminal-mode))
+
+       ,parsed)))

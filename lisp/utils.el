@@ -10,6 +10,10 @@
 
 (defun container-set (lst-or-h-or-obj k v)
   (cond
+   ((alistp lst-or-h-or-obj)
+    (when-let* ((found (assoc k lst-or-h-or-obj)))
+      (setf (cdr found) v)
+      lst-or-h-or-obj))
    ((listp lst-or-h-or-obj)
     (when (and (>= k 0) (<= k (length v)))
       (setf (nth k lst-or-h-or-obj) v)
@@ -17,12 +21,12 @@
    ((hash-table-p lst-or-h-or-obj)
     (ht-set lst-or-h-or-obj k v)
     lst-or-h-or-obj)
-   (t
+   ((eieio-object-p lst-or-h-or-obj)
     (setf (slot-value lst-or-h-or-obj k) v)
     lst-or-h-or-obj))) 
 
 (defun alistp (x)
-  (when-let* ((test (container? x))
+  (when-let* ((test (list? x))
 	      (first-value (nth 0 x)))
   (container? first-value)))
 
@@ -64,7 +68,7 @@
        (add-hook ,HOOK ,FN))))
 
 (defmacro parse-arguments! (&rest args)
-  (let* ((parsed (hash-table%))
+  (let* ((parsed (ht))
 	 (pos-args '())
 	 (args-len (length args))
 	 (start-keyword-index (gensym))
@@ -89,7 +93,7 @@
        (list ,pos-args ,parsed))))
 
 (defun parse-arguments (&rest args)
-  (let* ((parsed (hash-table%))
+  (let* ((parsed (ht))
 	 (pos-args '())
 	 (args-len (length args))
 	 (start-keyword-index
