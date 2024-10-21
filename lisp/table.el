@@ -409,34 +409,6 @@
 (defun from-alist% (p)
   (ht-from-alist p))
 
-(defun %. (x &rest ks)
-  (let* ((k (car ks))
-	 (next (cdr ks)))
-    (if (not next)
-	(container-get x k)
-      (when-let* ((v (container-get x k)))
-	(when (container? v)
-	  (apply #'%. v next)))))) 
-
-(defun %%. (x &rest ks)
-  (map@ ks (lambda (k) (apply #'%. x (->list k)))))
-
-(defun %set (x &rest ks-and-value)
-  (cl-labels ((-set (X KS-AND-VALUE)
-		(let* ((value (last@ KS-AND-VALUE))
-		       (ks (butlast KS-AND-VALUE))
-		       (k (first@ ks))
-		       (next (cdr ks))
-		       (v (container-get X k)))
-		  (cond
-		   ((not next)
-		    (container-set X k value))
-		   ((container? v)
-		    (-set v (append@ next value)))))))
-    (-set x ks-and-value)))
-
-(defalias '%! '%set)
-
 (defun ->list (x)
   (if (listp x) x (list x)))
 
@@ -445,14 +417,6 @@
 	   when (= (% x 2) 0)
 	   collect (list (nth x lst) (nth (+ x 1) lst))))
 
-(defmacro %%set (obj &rest kvs)
-  `(cl-loop for x from 0 below (length ',kvs)
-	    when (= (% x 2) 0)
-	    collect (let* ((KEY (->list (nth x ',kvs)))
-			   (VALUE (nth (+ x 1) ',kvs)))
-		      (apply #'%set ,obj (append@ KEY VALUE)))))
-
-(defalias '%%! '%%set)
 (defalias 'as-list '->list)
 
 (defun match-table (X SPEC)

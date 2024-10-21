@@ -129,7 +129,11 @@
 	 (map (gensym)))
     `(progn
        (setq ,parsed (last@ (parse-arguments! ,@args)))
-       (setq ,parsed (map% ,parsed (lambda (_ v) (if (singleton? v) (first@ v) v))))
+       (setq ,parsed (map% ,parsed (lambda (_ v)
+				     (if (and (singleton? v)
+					      (not (list? (first@ v))))
+					 (first@ v)
+				       v))))
        (setq ,parsed (->plist% ,parsed))
        (setq ,parsed (apply #'lang ,parsed))
        (setq ,mm (%. ,parsed 'major-mode))

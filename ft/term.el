@@ -1,11 +1,7 @@
 (lang!
  :major-mode term-mode
- :map
- (normal "q" 'delete-window)
- (visual "q" 'delete-window))
-
-(lang!
- :major-mode ansi-term-mode
- :map
- (normal "q" 'delete-window)
- (visual "q" 'delete-window))
+ :hooks
+ (kbd!
+  :keymaps 'local
+  :states '(normal visual insert)
+  "q" 'delete-window))

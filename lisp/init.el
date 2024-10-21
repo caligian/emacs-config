@@ -28,6 +28,7 @@
 ;; basic config API
 (load-file "~/.emacs.d/lisp/utils.el")
 (load-file "~/.emacs.d/lisp/table.el")
+(load-file "~/.emacs.d/lisp/container.el")
 (load-file "~/.emacs.d/lisp/path.el")
 (load-file "~/.emacs.d/lisp/string.el")
 
