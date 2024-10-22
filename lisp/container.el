@@ -138,6 +138,14 @@
   (cl-loop for k in ks
 	   collect (apply '%rm x (->list k))))
 
+(defun %setq (x &rest form)
+  (cl-loop for i from 0 below (length form)
+	   when (= 0 (% i 2))
+	   do (let* ((k (->list (nth i form)))
+		     (v (nth (+ i 1) form)))
+		(apply #'%set x (append@ k v))))
+  x)
+
 (defun %compare (X SPEC)
   (cl-labels
       ((MATCH-TABLE (x spec)

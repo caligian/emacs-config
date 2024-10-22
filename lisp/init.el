@@ -16,6 +16,10 @@
 (straight-use-package 'general)
 (straight-use-package 'use-package)
 
+(add-hook 'messages-buffer-mode
+	  (lambda nil
+	    (general-define-key :keymaps 'local "q" 'delete-window)))
+
 (defalias 'kbd! 'general-define-key)
 
 (require 'eieio)
@@ -26,11 +30,7 @@
 (require 'general)
 
 ;; basic config API
-(load-file "~/.emacs.d/lisp/utils.el")
-(load-file "~/.emacs.d/lisp/table.el")
-(load-file "~/.emacs.d/lisp/container.el")
-(load-file "~/.emacs.d/lisp/path.el")
-(load-file "~/.emacs.d/lisp/string.el")
+(load-file "~/.emacs.d/lisp/utils.elc")
 
 (setq LaTeX-item-indent 0)
 (setq warning-minimum-level :emergency)
@@ -66,8 +66,8 @@
 (global-display-line-numbers-mode)
 (set-frame-font "Fira Code 13" nil t)
 (set-language-environment "utf-8")
-(set-frame-parameter nil 'alpha-background 96)
-(add-to-list 'default-frame-alist '(alpha-background . 96))
+(set-frame-parameter nil 'alpha-background 100)
+(add-to-list 'default-frame-alist '(alpha-background . 100))
 (pixel-scroll-precision-mode t)
 (global-auto-revert-mode 1)
 
@@ -75,10 +75,9 @@
 (load-file "~/.emacs.d/lisp/langs.el")
 (load-file "~/.emacs.d/lisp/terminal.el")
 (load-file "~/.emacs.d/lisp/formatter.el")
-(load-file "~/.emacs.d/lisp/packages.el")
-(load-file "~/.emacs.d/lisp/pkgs.el")
 (load-file "~/.emacs.d/lisp/compiler.el")
 (load-file "~/.emacs.d/config/mappings.el")
 (load-file "~/.emacs.d/config/hooks.el")
+(load-file "~/.emacs.d/packages.el")
 
 (lang-load-directory)
