@@ -10,6 +10,9 @@
 (defalias 'keys% 'ht-keys)
 (defalias 'values% 'ht-values)
 (defalias 'first@ 'car)
+(defalias 'merge% 'ht-merge)
+(defalias 'last@ '-last-item)
+(defalias 'first@ '-first-item)
 
 (defun empty? (x &optional len-fn)
   (if len-fn
@@ -20,15 +23,6 @@
 
 (defun not-empty? (x &optional len-fn)
   (not (funcall 'empty? x len-fn)))
-
-(defun merge% (&rest maps)
-  (apply 'ht-merge maps))
-
-(defun last@ (lst)
-  (-last-item lst))
-
-(defun head@ (lst)
-  (-head-first lst))
 
 (defun -get% (h ks)
   (let* ((k (car ks))
@@ -113,12 +107,6 @@
 		      (funcall fn last-key (ht-get found last-key)))
 	     h)))
 
-(defun each% (h fn)
-  (ht-each fn h))
-
-(defun map% (h fn)
-  (ht-map fn h))
-
 (defun filter% (h fn &optional mapfn)
   (let* ((out (ht)))
     (dolist (it (ht-items h))
@@ -194,12 +182,13 @@
       (nth (- (length lst) n) lst)
    (nth n lst)))
 
-(defun enumerate@ (lst)
+(defun enumerate@ (lst &optional map-fn)
   (let* ((process (lambda (x i)
 		    `(,@(nth i x)))))
    (cl-loop for x from 0 to (- (length lst) 1)
-	    collect (let* ((v (nth@ lst x)))
-		      `(,x ,v)))))
+	    collect (let* ((v (nth@ lst x))
+			   (v (if map-fn (funcall map-fn x v) v)))
+		      (if map-fn v (list x v))))))
 
 (defun range@ (start end &optional step)
   (let* ((step (or step 1)))
@@ -292,16 +281,15 @@
     out))
 
 (defun pop@ (lst &rest ks)
-  (dolist (k ks)
-    (if (listp k)
-	(apply #'rm@ lst k)
-      (rm@ lst k)))
-  lst)
-
+  (let* ((out (list)))
+    (dolist (k ks)
+      (let* ((v (apply #'rm@ lst (->list k))))
+	(setq out (append@ out v))))
+    out))
 
 ;; ks: string | list[string]...
 (defun pop% (h &rest ks)
-  (let* ((out (ht))
+  (let* ((out (list))
 	 (required (map@ ks (lambda (k)
 			      (if (listp k)
 				  (apply 'get% h k)
@@ -311,9 +299,10 @@
 	     (let* ((k (nth@ ks i))
 		    (v (nth@ required i)))
 	       (if (listp k)
-		   (progn (apply #'set% out (append@ k v))
-			  (apply #'rm% h k))
-		 (progn (set% out k v)
+		   (progn
+		     (setq out (append@ out v))
+		     (apply #'rm% h k))
+		 (progn (setq out (append@ out v))
 			(rm% h k))))))
     out))
 
@@ -418,51 +407,3 @@
 	   collect (list (nth x lst) (nth (+ x 1) lst))))
 
 (defalias 'as-list '->list)
-
-(defun match-table (X SPEC)
-  (cl-labels
-      ((MATCH-TABLE (x spec)
-	 (cond
-	  ((functionp spec)
-	   (and (funcall spec x) x))
-	  ((and (listp x) (listp spec))
-	   (let* ((success? t)
-		  (i 0)
-		  (x-len (length x))
-		  (spec-len (length spec))
-		  (limit (min x-len spec-len)))
-	     (while (and success? (< i limit))
-	       (let* ((x-value (nth i x))
-		      (spec-value (nth i spec)))
-		 (cond
-		  ((and (container? x-value)
-			(container? spec-value))
-		   (setq success? (MATCH-TABLE x-value spec-value)))
-		  ((and (functionp spec-value))
-		   (setq success? (funcall spec-value x-value)))
-		  (t 
-		   (setq success? (equal x-value spec-value))))
-		 (setq i (+ i 1))))
-	     success?))
-	  ((and (ht-p x) (ht-p spec))
-	   (let* ((success? t)
-		  (i 0)
-		  (x-ks (keys% x))
-		  (spec-ks (keys% spec))
-		  (x-len (length x-ks))
-		  (spec-len (length spec-ks))
-		  (limit (min x-len spec-len)))
-	     (while (and success? (< i limit))
-	       (let* ((x-value (get% x (nth i x-ks)))
-		      (spec-value (get% spec (nth i spec-ks))))
-		 (cond
-		  ((and (container? x-value)
-			(container? spec-value))
-		   (setq success? (MATCH-TABLE x-value spec-value)))
-		  ((and (functionp spec-value))
-		   (setq success? (funcall spec-value x-value)))
-		  (t 
-		   (setq success? (equal x-value spec-value))))
-		 (setq i (+ i 1))))
-	     success?)))))
-    (MATCH-TABLE X SPEC)))

@@ -138,5 +138,53 @@
   (cl-loop for k in ks
 	   collect (apply '%rm x (->list k))))
 
+(defun %compare (X SPEC)
+  (cl-labels
+      ((MATCH-TABLE (x spec)
+	 (cond
+	  ((functionp spec)
+	   (and (funcall spec x) x))
+	  ((and (listp x) (listp spec))
+	   (let* ((success? t)
+		  (i 0)
+		  (x-len (length x))
+		  (spec-len (length spec))
+		  (limit (min x-len spec-len)))
+	     (while (and success? (< i limit))
+	       (let* ((x-value (nth i x))
+		      (spec-value (nth i spec)))
+		 (cond
+		  ((and (container? x-value)
+			(container? spec-value))
+		   (setq success? (MATCH-TABLE x-value spec-value)))
+		  ((and (functionp spec-value))
+		   (setq success? (funcall spec-value x-value)))
+		  (t 
+		   (setq success? (equal x-value spec-value))))
+		 (setq i (+ i 1))))
+	     success?))
+	  ((and (ht-p x) (ht-p spec))
+	   (let* ((success? t)
+		  (i 0)
+		  (x-ks (keys% x))
+		  (spec-ks (keys% spec))
+		  (x-len (length x-ks))
+		  (spec-len (length spec-ks))
+		  (limit (min x-len spec-len)))
+	     (while (and success? (< i limit))
+	       (let* ((x-value (get% x (nth i x-ks)))
+		      (spec-value (get% spec (nth i spec-ks))))
+		 (cond
+		  ((and (container? x-value)
+			(container? spec-value))
+		   (setq success? (MATCH-TABLE x-value spec-value)))
+		  ((and (functionp spec-value))
+		   (setq success? (funcall spec-value x-value)))
+		  (t 
+		   (setq success? (equal x-value spec-value))))
+		 (setq i (+ i 1))))
+	     success?)))))
+    (MATCH-TABLE X SPEC)))
+
 (defalias '%. '%get)
 (defalias '%! '%set)
