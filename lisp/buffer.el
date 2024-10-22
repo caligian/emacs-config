@@ -176,7 +176,7 @@
       ('frame (switch-to-buffer-other-frame buf))
       ('window (switch-to-buffer-other-window buf)))))
 
-(defun buffer2string (buf start-point end-point)
+(defun buffer2string (buf &optional start-point end-point)
   (with-current-buffer (or buf (current-buffer))
     (buffer-substring-no-properties
      (or start-point (point-min))
@@ -225,3 +225,12 @@
 (defun scratch-buffer-right ()
   (interactive)
   (funcall #'scratch-buffer-split :right))
+
+(defun buffer-replace-region (buf new-region)
+  (with-current-buffer (or buf (current-buffer))
+    (delete-region (mark) (point))
+    (insert new-region)))
+
+(defun buffer-delete-region (buf)
+  (with-current-buffer (or buf (current-buffer))
+    (delete-region (mark) (point))))

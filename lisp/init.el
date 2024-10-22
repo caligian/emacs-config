@@ -76,6 +76,7 @@
 (load-file "~/.emacs.d/lisp/terminal.el")
 (load-file "~/.emacs.d/lisp/formatter.el")
 (load-file "~/.emacs.d/lisp/compiler.el")
+(load-file "~/.emacs.d/lisp/async-process.el")
 (load-file "~/.emacs.d/config/mappings.el")
 (load-file "~/.emacs.d/config/hooks.el")
 (load-file "~/.emacs.d/packages.el")

@@ -3,5 +3,5 @@
  :hooks
  (kbd!
   :keymaps 'local
-  :states '(normal visual insert)
+  :states '(normal visual)
   "q" 'delete-window))

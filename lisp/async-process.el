@@ -1,7 +1,9 @@
 (setq user-async-processes (ht))
 
 (defclass async-process ()
-  ((name :initarg :name
+  ((shell :initarg :shell
+	  :initform t)
+   (name :initarg :name
 	 :initform nil)
    (command :initarg :command
 	 :initform nil)
@@ -20,7 +22,44 @@
    (filter :initarg :filter
 	   :initform nil)
    (sentinel :initarg :sentinel
-	     :initform nil)))
+	     :initform nil)
+   (with-stdin :initarg :with-stdin
+	       :initform nil)
+   (on-exit :initarg :on-exit
+	       :initform nil)
+   (on-failure :initarg :on-failure
+	       :initform nil)
+   (on-success :initarg :on-success
+	       :initform nil)
+   (stdin-file :initarg :stdin-file
+	       :initform nil)))
+
+(cl-defmethod async-process--create-shell-command ((proc async-process))
+  (async-process--create-temp-file proc)
+  (with-slots (command stdin-file) proc
+    (let* (cmd)
+      (if (listp command)
+	  (setq cmd (string-join command " "))
+	(setq cmd (%. proc 'command)))
+      (if (and stdin-file (file-exists-p stdin-file))
+	  (setq cmd (list "zsh" "-c" (concat "cat " stdin-file " | " cmd)))
+	 (setq cmd (list "zsh" "-c" cmd)))
+      (%! proc 'command cmd)
+      cmd)))
+
+(cl-defmethod async-process--create-temp-file ((proc async-process))
+  (with-slots (with-stdin) proc
+    (cond
+     ((and (buffer? with-stdin) (buffer-file-name with-stdin))
+      (%! proc 'stdin-file (buffer-file-name with-stdin)))
+     ((string? with-stdin)
+      (let* ((tempname (make-temp-name "async-process-stdin-"))
+	     (tempname (concat config-directory "/.cache/" tempname))
+	     (buf (get-buffer-create tempname)))
+	(with-current-buffer buf
+	  (insert with-stdin)
+	  (write-file tempname)
+	  (%! proc 'stdin-file tempname)))))))
 
 (cl-defmethod async-process--create-filter ((proc async-process))
   `(with-slots (process stdout) ,proc
@@ -28,10 +67,16 @@
        (%! ,proc 'stdout (append stdout (split-string s "\n\r"))))))
 
 (cl-defmethod async-process--create-sentinel ((proc async-process))
-  `(with-slots (process) ,proc
+  `(with-slots (process on-exit on-success on-failure) ,proc
      (lambda (_ e)
-       (unless (process-live-p ,proc)
-	(%! ,proc 'exit-status (process-exit-status process))))))
+       (when-let* ((exit-status (process-exit-status process)))
+	 (when on-exit
+	   (funcall on-exit ,proc))
+	 (let* ((success? (= exit-status 0)))
+	   (when (and on-success success?)
+	     (funcall on-success ,proc))
+	   (when (and on-failure (not success?))
+	     (funcall on-failure ,proc)))))))
 
 (cl-defmethod async-process--create-stderr-pipe ((proc async-process))
   `(with-slots (name process stderr) ,proc
@@ -45,7 +90,10 @@
 	 (name (%. proc 'name)))
     (when name
       (%! user-async-processes name proc))
+    (async-process--create-shell-command proc)
     proc))
+
+(defalias 'async-process! 'async-process-init)
 
 (cl-defmethod async-process-live? ((proc async-process))
   (with-slots (process) proc
@@ -87,12 +135,17 @@
 	 (region (buffer-get-region buf)))
     (async-process-send-string proc region)))
 
-;; (setq a-proc (async-process-init
-;; 	      :name "test process"
-;; 	      :command (list "ls" "-l1324324" "/home/skeletor")))
+(cl-defmethod async-process-kill ((proc async-process))
+  (when (async-process-live? proc)
+    (kill-process proc)))
 
-;; (async-process-start a-proc)
-;; (%. a-proc 'exit-status)
-;; (%. a-proc 'stderr)
-;; a-proc
-;; (process-exit-status (%. a-proc 'process))
+(cl-defmethod async-process-stop ((proc async-process))
+  (when (async-process-live? proc)
+    (stop-process proc)))
+
+(setq a-proc
+      (async-process-init
+       :name "test process"
+       :command (list "ls" "-l" "/home/skeletor" ">" "-some-output-file")
+       :on-success (lambda (_) (shell-command "firefox"))))
+
