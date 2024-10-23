@@ -30,7 +30,7 @@
 (require 'general)
 
 ;; basic config API
-(load-file "~/.emacs.d/lisp/utils.elc")
+(load-file "~/.emacs.d/lisp/utils.el")
 
 (setq LaTeX-item-indent 0)
 (setq warning-minimum-level :emergency)
@@ -55,6 +55,7 @@
       kept-old-versions 2
       version-control t)
 (setq auto-save-file-name-transforms `((".*" "~/.emacs.d/backup")))
+(setq undo-tree-history-directory-alist (list '(".*" . "~/.emacs.d/cache")))
 
 (global-undo-tree-mode)
 (evil-mode t)
@@ -74,9 +75,10 @@
 (load-file "~/.emacs.d/lisp/buffer.el")
 (load-file "~/.emacs.d/lisp/langs.el")
 (load-file "~/.emacs.d/lisp/terminal.el")
-(load-file "~/.emacs.d/lisp/formatter.el")
+; (load-file "~/.emacs.d/lisp/formatter.el")
 (load-file "~/.emacs.d/lisp/compiler.el")
 (load-file "~/.emacs.d/lisp/async-process.el")
+(load-file "~/.emacs.d/lisp/async-formatter.el")
 (load-file "~/.emacs.d/config/mappings.el")
 (load-file "~/.emacs.d/config/hooks.el")
 (load-file "~/.emacs.d/packages.el")

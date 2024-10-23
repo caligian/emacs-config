@@ -57,6 +57,7 @@
 	     (tempname (concat config-directory "/.cache/" tempname))
 	     (buf (get-buffer-create tempname)))
 	(with-current-buffer buf
+	  (local-set-key (kbd "q") #'delete-window)
 	  (insert with-stdin)
 	  (write-file tempname)
 	  (%! proc 'stdin-file tempname)))))))
@@ -67,9 +68,14 @@
        (%! ,proc 'stdout (append stdout (split-string s "\n\r"))))))
 
 (cl-defmethod async-process--create-sentinel ((proc async-process))
-  `(with-slots (process on-exit on-success on-failure) ,proc
+  `(with-slots (process on-exit on-success on-failure stdin-file) ,proc
      (lambda (_ e)
        (when-let* ((exit-status (process-exit-status process)))
+	 (when (and (string? stdin-file)
+		    (=~ stdin-file "async-process-stdin-"))
+	   (delete-file stdin-file)
+	   (when-let* ((buf (get-buffer stdin-file)))
+	     (kill-buffer buf)))
 	 (when on-exit
 	   (funcall on-exit ,proc))
 	 (let* ((success? (= exit-status 0)))
@@ -79,9 +85,15 @@
 	     (funcall on-failure ,proc)))))))
 
 (cl-defmethod async-process--create-stderr-pipe ((proc async-process))
-  `(with-slots (name process stderr) ,proc
+  `(with-slots (name stderr) ,proc
      (make-pipe-process
       :name (concat name "-stderr-pipe")
+      :sentinel (lambda (p _)
+		  (when-let* ((exit-status (process-exit-status p)))
+		    (when (buffer? (get-buffer name))
+		      (kill-buffer (get-buffer name)))
+		    (when (file-exists-p name)
+		      (delete-file name))))
       :filter (lambda (_ s)
 		(%! ,proc 'stderr (append stderr (split-string s "\n\r")))))))
 

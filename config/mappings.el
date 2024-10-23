@@ -2,7 +2,6 @@
  :prefix "SPC b"
  :states '(normal)
  "m" 'bookmark-set
- "f" 'formatter-format-buffer
  "r" "C-x C-q"
  "k" 'delete-window
  "q" (lambda ()

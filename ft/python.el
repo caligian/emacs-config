@@ -2,7 +2,8 @@
  :major-mode python-mode
  :builtin-terminal t
  :lsp "jedi-language-server"
- :formatter "cat %buffer | autopep8 -"
+
+ :formatter "black -"
 
  :compile
  (buffer "python3 %path")
