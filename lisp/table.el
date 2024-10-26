@@ -313,6 +313,18 @@
 (defun index-by@ (lst pred)
   (-find-index pred lst))
 
+(defun index-all@ (lst elem)
+  (cl-loop for x in lst
+	   for y from 0 below (length lst)
+	   when (equal elem x)
+	   collect y))
+
+(defun index-all-by@ (lst pred)
+  (cl-loop for x in lst
+	   for y from 0 below (length lst)
+	   when (funcall pred x)
+	   collect y))
+
 (defun contains?@ (lst item &optional pred)
   (let* ((pred (or pred 'equal)))
     (cl-loop for x in lst
@@ -407,3 +419,6 @@
 	   collect (list (nth x lst) (nth (+ x 1) lst))))
 
 (defalias 'as-list '->list)
+(defalias 'as-alist '->alist)
+(defalias 'as-alist% '->alist%)
+(defalias 'as-plist% '->plist%)

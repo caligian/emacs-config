@@ -14,16 +14,6 @@
 	"/"
       bname)))
 
-(defmacro add-hook! (&rest forms)
-  (let* ((HOOK (gensym))
-	 (BODY (gensym))
-	 (FN (gensym)))
-    `(dolist (f ',forms)
-       (setq ,HOOK (car f))
-       (setq ,BODY (cdr f))
-       (setq ,FN (append `(lambda nil) ,BODY))
-       (add-hook ,HOOK ,FN))))
-
 (defmacro parse-arguments! (&rest args)
   (let* ((parsed (ht))
 	 (pos-args '())
@@ -95,6 +85,25 @@
 (defalias 'command? 'commandp)
 (defalias 'function? 'functionp)
 (defalias 'number? 'numberp)
+
+(defmacro add-mode-hook! (hook &rest body)
+  (let* ((-hook-name (gensym))
+	 (form (gensym)))
+    `(progn
+       (let* ((,-hook-name (symbol-name ',hook))
+	      (,-hook-name (concat ,-hook-name "-mode-hook"))
+	      (,-hook-name (intern ,-hook-name))))
+       (add-hook ,-hook-name (lambda nil ,@body)))))
+
+(defmacro add-hook! (hook &rest body)
+  `(add-hook ',hook (lambda nil ,@body)))
+
+(defmacro add-hooks! (&rest forms)
+  `(cl-loop for f in ',forms
+	    do (eval (append (list 'add-hook!)
+			     (list (car f))
+			     (cdr f)))))
+
 
 (load-file "~/.emacs.d/lisp/table.el")
 (load-file "~/.emacs.d/lisp/container.el")

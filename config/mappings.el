@@ -91,15 +91,9 @@
 
 (kbd!
  :states 'normal
- :prefix "SPC c"
- "c" #'compiler-compile-workspace)
-
-(kbd!
- :states 'normal
- :prefix "M-SPC c"
- "c" #'compiler-compile-buffer)
-
-(kbd!
- :states 'normal
  :prefix "SPC"
- "v" (general-simulate-key "C-x v"))
+ "v" (general-key "C-x v"))
+
+(kbd!
+ :states '(normal insert visual)
+ "M-SPC" (general-simulate-key "<escape>SPC"))

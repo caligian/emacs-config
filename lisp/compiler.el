@@ -19,3 +19,6 @@
 (defun compiler-compile-workspace (&optional buf cmd)
   (interactive)
   (compiler-compile-buffer buf 'workspace cmd))
+
+(defalias 'compile-buffer 'compiler-compile-buffer)
+(defalias 'compile-workspace-buffer 'compiler-compile-workspace)

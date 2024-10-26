@@ -7,27 +7,42 @@
 
 ;; NECESSARY
 (straight-use-package 'evil)
-(straight-use-package 'undo-tree)
 (straight-use-package 's)
 (straight-use-package 'dash)
 (straight-use-package 'ht)
 (straight-use-package 'f)
 (straight-use-package 'ts)
 (straight-use-package 'general)
-(straight-use-package 'use-package)
+(straight-use-package 'undo-tree)
 
-(add-hook 'messages-buffer-mode
+
+;; when popwin does not help with evil-mode
+(require 'evil)
+(evil-set-initial-state 'messages-buffer-mode 'emacs)
+(evil-set-initial-state 'dired-mode 'emacs)
+
+(setq temp-buffer-patterns (list "\\*messages\\*" "\\*scratch\\*" "temp-buffer-*"))
+(add-hook 'buffer-list-update-hook
 	  (lambda nil
-	    (general-define-key :keymaps 'local "q" 'delete-window)))
+	    (when-let* ((buf (current-buffer))
+			(bufname (buffer-name buf))
+			(matches? (cl-loop for pat in temp-buffer-patterns
+					   when (string-match-p pat bufname)
+					   return t)))
+	      (with-current-buffer buf
+		(keymap-local-set (kbd "q") 'delete-window)))))
 
-(defalias 'kbd! 'general-define-key)
 
+;; require all the libs
 (require 'eieio)
 (require 'f)
 (require 'dash)
 (require 'ts)
 (require 'ht)
 (require 'general)
+(require 'undo-tree)
+
+(defalias 'kbd! 'general-define-key)
 
 ;; basic config API
 (load-file "~/.emacs.d/lisp/utils.el")
@@ -57,7 +72,6 @@
 (setq auto-save-file-name-transforms `((".*" "~/.emacs.d/backup")))
 (setq undo-tree-history-directory-alist (list '(".*" . "~/.emacs.d/cache")))
 
-(global-undo-tree-mode)
 (evil-mode t)
 (recentf-mode 1)
 (winner-mode t)
@@ -84,3 +98,4 @@
 (load-file "~/.emacs.d/packages.el")
 
 (lang-load-directory)
+(global-undo-tree-mode t)
