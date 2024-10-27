@@ -17,5 +17,4 @@
 	 "K" (lambda ()
 	       (interactive)
 	       (when-let* ((fn (thing-at-point 'symbol t)))
-		 (describe-function (intern fn)))))
- )
+		 (describe-function (intern fn))))))
