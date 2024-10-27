@@ -97,3 +97,12 @@
 (kbd!
  :states '(normal insert visual)
  "M-SPC" (general-simulate-key "<escape>SPC"))
+
+(kbd!
+ :states 'normal
+ :prefix "SPC"
+ "gg" 'magit
+ "gs" 'magit-stage-buffer-file
+ "gu" 'magit-unstage-buffer-file
+ "gp" 'magit-push
+ "g?" 'magit-status)
