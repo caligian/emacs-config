@@ -11,13 +11,13 @@
 	 "b" #'terminal-workspace-send-buffer)
  (visual :prefix "SPC r"
 	 "e" #'terminal-workspace-send-region)
- (normal  :prefix "M-SPC r"
-	  "r" #'terminal-buffer-start-below
+ (normal  :prefix "SPC m"
+	  "m" #'terminal-buffer-start-below
 	  "s" #'terminal-buffer-below
 	  "v" #'terminal-buffer-right
 	  "k" #'terminal-buffer-hide
 	  "q" #'terminal-buffer-kill
 	  "e" #'terminal-buffer-send-line
 	  "b" #'terminal-buffer-send-buffer)
- (visual  :prefix "M-SPC r"
+ (visual  :prefix "SPC "
 	  "e" #'terminal-buffer-send-region))

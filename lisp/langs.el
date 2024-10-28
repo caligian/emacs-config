@@ -1,4 +1,4 @@
-(setq lang-config-path "~/.emacs.d/ft")
+(setq lang-config-path "~/.emacs.d/modes")
 (setq langs (ht))
 
 (defclass lang ()
@@ -60,14 +60,14 @@
 	 (fn `(lambda nil ,@hooks)))
     (add-hook hook (eval fn))))
 
-(defun lang-load-file (ft)
-  (when-let* ((fname (concat "~/.emacs.d/ft/" ft ".el"))
+(defun lang-load-file (mode)
+  (when-let* ((fname (concat "~/.emacs.d/modes/" mode ".el"))
 	      (exists? (file-exists-p fname)))
     (load-file fname)))
 
-(cl-defmethod lang-query ((ft lang) attrib &optional type)
+(cl-defmethod lang-query ((mode lang) attrib &optional type)
   (when (contains?@ (list 'compile 'repl 'formatter) attrib)
-    (let* ((attrib-value (%. ft attrib))
+    (let* ((attrib-value (%. mode attrib))
 	   (value (if (eq attrib 'formatter)
 		      attrib-value
 		    (if type
@@ -75,14 +75,14 @@
 		      attrib-value))))
       value)))
 
-(defun lang-query! (buf-or-symbol-or-ft attrib &optional type)
-  (when-let* ((ft (cond
-		   ((bufferp buf-or-symbol-or-ft)
-		    (buffer-lang buf-or-symbol-or-ft))
-		   ((symbolp buf-or-symbol-or-ft)
-		    (get% langs buf-or-symbol-or-ft))
-		   (t buf-or-symbol-or-ft))))
-    (lang-query ft attrib type)))
+(defun lang-query! (buf-or-symbol-or-mode attrib &optional type)
+  (when-let* ((mode (cond
+		   ((bufferp buf-or-symbol-or-mode)
+		    (buffer-lang buf-or-symbol-or-mode))
+		   ((symbolp buf-or-symbol-or-mode)
+		    (get% langs buf-or-symbol-or-mode))
+		   (t buf-or-symbol-or-mode))))
+    (lang-query mode attrib type)))
 
 (cl-defmethod lang-buffer-command (buf (obj lang) attrib &optional type)
   (when-let* ((buf (or buf (current-buffer)))
@@ -100,21 +100,27 @@
 		       value)))
     (replace-regexp-in-string "%path" path value)))
 
-(defun lang-buffer-command! (buf buf-or-symbol-or-ft attrib type)
-  (when-let* ((ft (cond
-		   ((bufferp buf-or-symbol-or-ft)
-		    (buffer-lang buf-or-symbol-or-ft))
-		   ((symbolp buf-or-symbol-or-ft)
-		    (get% langs buf-or-symbol-or-ft))
-		   (t buf-or-symbol-or-ft))))
-    (lang-buffer-command buf ft attrib type)))
+(defun lang-buffer-command! (buf buf-or-symbol-or-mode attrib type)
+  (when-let* ((mode (cond
+		   ((bufferp buf-or-symbol-or-mode)
+		    (buffer-lang buf-or-symbol-or-mode))
+		   ((symbolp buf-or-symbol-or-mode)
+		    (get% langs buf-or-symbol-or-mode))
+		   (t buf-or-symbol-or-mode))))
+    (lang-buffer-command buf mode attrib type)))
 
 (defun lang-get-buffer-lang (&optional buf)
   (with-current-buffer (or buf (current-buffer))
     (get% langs major-mode)))
 
+(defun lang-list-modes (&optional fullpath)
+  (if fullpath
+      (list-emacs-lisp-files "~/.emacs.d/modes" t)
+    (-> (list-emacs-lisp-files "~/.emacs.d/modes")
+	(map@ (lambda (x) (replace-regexp-in-string "\\.el$" "" x))))))
+
 (defun lang-load-directory ()
-  (each@ (list-emacs-lisp-files "~/.emacs.d/ft" t)
+  (each@ (list-emacs-lisp-files "~/.emacs.d/modes" t)
 	 (lambda (x)
 	   (message "loading lang config from %s" x)
 	   (load-file x))))

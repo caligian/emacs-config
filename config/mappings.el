@@ -95,7 +95,7 @@
  "v" (general-key "C-x v"))
 
 (kbd!
- :states '(normal insert visual)
+ :states '(normal insert visual emacs)
  "M-SPC" (general-simulate-key "<escape>SPC"))
 
 (kbd!
