@@ -20,8 +20,13 @@
 (require 'evil)
 (evil-set-initial-state 'messages-buffer-mode 'emacs)
 (evil-set-initial-state 'dired-mode 'emacs)
+(evil-set-initial-state 'term-mode 'insert)
+(evil-set-initial-state 'ansi-term-mode 'insert)
 
-(setq temp-buffer-patterns (list "\\*messages\\*" "\\*scratch\\*" "temp-buffer-*"))
+(setq temp-buffer-patterns (list "\\*ansi-term"
+				 "\\*messages\\*"
+				 "\\*scratch\\*"
+				 "temp-buffer-*"))
 (add-hook 'buffer-list-update-hook
 	  (lambda nil
 	    (when-let* ((buf (current-buffer))
@@ -29,8 +34,13 @@
 			(matches? (cl-loop for pat in temp-buffer-patterns
 					   when (string-match-p pat bufname)
 					   return t)))
-	      (with-current-buffer buf
-		(keymap-local-set (kbd "q") 'delete-window)))))
+		       (with-current-buffer buf
+	      (general-define-key :states '(normal visual)
+				  :keymaps 'override
+				  "q" (lambda nil
+					(interactive)
+					(evil-force-normal-state)
+					(delete-window)))))))
 
 
 ;; require all the libs
