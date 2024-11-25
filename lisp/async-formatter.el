@@ -5,7 +5,7 @@
 
 (defclass formatter ()
   ((major-mode
-    :initarg :major-mode
+    :initarg :id
     :initform nil)
    (command
     :initarg :command
@@ -25,7 +25,7 @@
 	      (buf (%. obj 'buffer))
 	      (mm (buffer-major-mode buf))
 	      (command (or (%. obj 'command)
-			   (%. langs mm 'formatter))))
+			   (%. mode-configs mm 'formatter))))
     (%! obj 'command command)
     (%! obj 'major-mode mm)
     (%! buffer-formatters buf obj)

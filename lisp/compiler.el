@@ -10,7 +10,7 @@
 	      (type (or type 'buffer))
 	      (cmd (if cmd
 		       cmd
-		     (lang-buffer-command! buf buf 'compile type)))
+		     (mode-config-buffer-command! buf buf 'compile type)))
 	      (cmd (if (string-match-p "%buffer" cmd)
 		       (replace-regexp-in-string "%buffer" fname cmd)
 		     cmd)))

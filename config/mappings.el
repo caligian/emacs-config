@@ -69,20 +69,20 @@
  :states 'visual
  "y" "\"+y")
 
-(kbd!
- :states 'normal
- :prefix "SPC x"
- "x" (lambda ()
-       (interactive)
-       (terminal-shell-start :below))
- "s" #'terminal-shell-split
- "v" (lambda nil
-       (interactive)
-       (terminal-shell-split :right))
- "k" #'terminal-shell-hide
- "q" #'terminal-shell-kill
- "e" #'terminal-shell-send-line
- "b" #'terminal-shell-send-buffer)
+;; (kbd!
+;;  :states 'normal
+;;  :prefix "SPC x"
+;;  "x" (lambda ()
+;;        (interactive)
+;;        (terminal-shell-start :below))
+;;  "s" #'terminal-shell-split
+;;  "v" (lambda nil
+;;        (interactive)
+;;        (terminal-shell-split :right))
+;;  "k" #'terminal-shell-hide
+;;  "q" #'terminal-shell-kill
+;;  "e" #'terminal-shell-send-line
+;;  "b" #'terminal-shell-send-buffer)
 
 (kbd!
  :states 'visual
@@ -95,14 +95,21 @@
  "v" (general-key "C-x v"))
 
 (kbd!
- :states '(normal insert visual emacs)
- "M-SPC" (general-simulate-key "<escape>SPC"))
+ "C-SPC" (lambda nil
+	   (interactive)
+	   (if (not evil-local-mode)
+	       (turn-on-evil-mode)
+	     (turn-off-evil-mode))))
 
 (kbd!
  :states 'normal
  :prefix "SPC"
  "gg" 'magit
+ "gc" 'magit-commit
  "gs" 'magit-stage-buffer-file
  "gu" 'magit-unstage-buffer-file
  "gp" 'magit-push
  "g?" 'magit-status)
+
+(kbd!
+ "M-/" 'hippie-expand)

@@ -85,8 +85,10 @@
 (defalias 'command? 'commandp)
 (defalias 'function? 'functionp)
 (defalias 'number? 'numberp)
+(defalias 'object? 'eieio-object-p)
 
 (defmacro add-mode-hook! (hook &rest body)
+  (declare (indent 1))
   (let* ((-hook-name (gensym))
 	 (form (gensym)))
     `(progn
@@ -96,6 +98,7 @@
        (add-hook ,-hook-name (lambda nil ,@body)))))
 
 (defmacro add-hook! (hook &rest body)
+  (declare (indent 1))
   `(add-hook ',hook (lambda nil ,@body)))
 
 (defmacro add-hooks! (&rest forms)
@@ -104,6 +107,12 @@
 			     (list (car f))
 			     (cdr f)))))
 
+(defmacro assert (form msg &optional success)
+  `(if (not ,form)
+       (if (list? ',msg)
+	   (error ,@msg)
+	 (error msg))
+     (or success t)))
 
 (load-file "~/.emacs.d/lisp/table.el")
 (load-file "~/.emacs.d/lisp/container.el")

@@ -1,5 +1,5 @@
-(lang!
- :major-mode ess-r-mode
+(mode-config!
+ :id ess-r-mode
 
  :compile
  (buffer "R %buffer")
@@ -13,29 +13,29 @@
 
  :map
  (normal :prefix "SPC e"
-	 "f" 'ess-load-file
-	 "d" 'ess-eval-function
-	 "e" 'ess-eval-line
-	 "b" 'ess-eval-buffer
-	 "D" 'ess-eval-function-and-go
-	 "E" 'ess-eval-line-and-go
-	 "B" 'ess-eval-buffer-and-go)
+	 "f" ess-load-file
+	 "d" ess-eval-function
+	 "e" ess-eval-line
+	 "b" ess-eval-buffer
+	 "D" ess-eval-function-and-go
+	 "E" ess-eval-line-and-go
+	 "B" ess-eval-buffer-and-go)
 
- (normal "K" 'ess-display-help-on-object
-	 "C-n" 'ess-complete-object-name)
+ (normal "K" ess-display-help-on-object
+	 "C-n" ess-complete-object-name)
 
  (normal :prefix "SPC r"
-	 "s" 'ess-switch-to-inferior-or-script-buffer
-	 "r" 'R)
+	 "s" ess-switch-to-inferior-or-script-buffer
+	 "r" R)
 
  (visual :prefix "SPC e"
-	 "e" 'ess-eval-region
-	 "E" 'ess-eval-region-and-go)
+	 "e" ess-eval-region
+	 "E" ess-eval-region-and-go)
 
  (normal :prefix "SPC m"
-	 "i" 'ess-install-library)
+	 "i" ess-install-library)
 
- (normal "q" 'delete-window)
+ (normal "q" delete-window)
 
  :hooks
  (abbrev-mode t))

@@ -1,3 +1,7 @@
+(setq buffer-workspaces (ht))
+(setq workspace-buffers (ht))
+(setq buffer-workspaces (ht))
+
 (defun chomp-path (p)
   (if (equal (substr1 p -1) "/")
       (substr p 0 -1)
@@ -65,6 +69,16 @@
 	dir))))
 
 (cl-defun find-buffer-workspace (buf &optional regex depth)
-  (path-exists-in-subdir? (dirname buf)
-			  (or regex (list "\\.git"))
-			  (or depth 4)))
+  (when-let* ((found (path-exists-in-subdir? (dirname buf)
+					     (or regex (list "\\.git"))
+					     (or depth 4))))
+    (%! buffer-workspaces buf found)
+    (fset% workspace-buffers found buf t)
+    found))
+
+(defun workspace-buffer? (ws buf)
+  (when-let* ((buf (if (string? buf)
+		       (get-buffer buf)
+		     (and (buffer? buf)
+			  buf))))
+    (%. workspace-buffers ws buf)))

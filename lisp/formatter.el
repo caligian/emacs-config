@@ -19,8 +19,8 @@
 (defun formatter-format-buffer (&optional buf)
   (interactive)
   (if-let* ((buf (or buf (current-buffer)))
-	    (ft (buffer-lang buf))
-	    (cmd (lang-buffer-command buf ft 'formatter)))
+	    (ft (buffer-mode-config buf))
+	    (cmd (mode-config-buffer-command buf ft 'formatter)))
       (formatter---format-buffer buf cmd)
     (message "no formatter defined for %s" (buffer-major-mode (or buf (current-buffer))))))
 

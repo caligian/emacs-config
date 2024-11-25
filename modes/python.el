@@ -1,8 +1,6 @@
-(lang!
- :major-mode python-mode
+(mode-config!
+ :id python-mode
  :builtin-terminal t
- :lsp "jedi-language-server"
-
  :formatter "black -"
 
  :compile
@@ -11,5 +9,8 @@
 
  :repl
  (buffer "python3")
- (workspace "cd %path && python3")
- (cwd "cd %path && python3"))
+ (workspace "python3")
+ (cwd "python3")
+
+ :hooks
+ (eglot-ensure))

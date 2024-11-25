@@ -1,6 +1,6 @@
 (setq kill-buffer-query-functions nil)
 (setq terminals (ht))
-(setq terminal-shell nil)
+(setq terminal-shell-terminal nil)
 (setq terminal-shell-command "/usr/bin/zsh")
 
 (defclass terminal ()
@@ -21,9 +21,9 @@
    (mode :init-arg :mode
 	 :initform nil
 	 :documentation "associated major mode")
-   (lang :initarg :lang
+   (mode-config :initarg :mode-config
 	 :initform nil
-	 :documentation "associated lang object")))
+	 :documentation "associated mode-config object")))
 
 (defclass terminal-shell ()
   ((process :initarg :process
@@ -36,7 +36,7 @@
 	   :initform nil
 	   :documentation "terminal buffer")))
 
-(setq terminal-shell (terminal-shell :command terminal-shell-command))
+(setq terminal-shell-terminal (terminal-shell :command terminal-shell-command))
 
 (cl-defmethod terminal-find-paths ((obj terminal))
   (with-slots (src type) obj
@@ -63,36 +63,35 @@
     (when process
 	(process-live-p process))))
 
-(defun terminal-start (obj &optional split)
+(defun terminal-start (obj)
   (if (not (terminal-live? obj))
-   (with-slots (command) obj
-    (with-current-buffer (current-buffer)
-      (pcase (or split :below)
-	(:below (split-window-below))
-	(:right (split-window-right)))
-      (other-window 1)
-      (ansi-term terminal-shell-command)
-      (message "running REPL with command '%s'" command)
-      (let* ((termbuf (current-buffer))
-	     (process (get-buffer-process termbuf)))
-	(setf (slot-value obj 'buffer) termbuf)
-	(setf (slot-value obj 'process) process)
-	(process-send-string process (concat command "\n"))
-	obj)))
-   (message "REPL with command '%s' is already running" (slot-value obj 'command))))
+      (with-slots (command) obj
+	(with-current-buffer (current-buffer)
+	  (split-window-horizontally)
+	  (other-window 1)
+	  (let* ((termbufname (concat "terminal: " command))
+		 (process (progn
+			    (ansi-term terminal-shell-command termbufname)
+			    (get-buffer-process (concat "*" termbufname "*"))))
+		 (termbuf (get-buffer (concat "*" termbufname "*"))))
+	    (setf (slot-value obj 'buffer) termbuf)
+	    (setf (slot-value obj 'process) process)
+	    (process-send-string process (concat command "\n"))
+	    (message "%s" (%. obj 'buffer))
+	    obj)
+	  (delete-window)))
+    (message "REPL with command '%s' is already running" (slot-value obj 'command))))
 
 (defun terminal-split (obj &optional direction)
-  (if (not (terminal-live? obj))
-      (terminal-start obj direction)
-    (when (and (terminal-live? obj)
-	       (not (terminal-visible? obj)))
-      (with-current-buffer (current-buffer)
-	(pcase (or direction :below)
-	  (:below (split-window-below))
-	  (:right (split-window-right)))
-	(with-slots (buffer) obj
-	  (other-window 1)
-	  (switch-to-buffer buffer))))))
+  (when (and (terminal-live? obj)
+	     (not (terminal-visible? obj)))
+    (with-current-buffer (current-buffer)
+      (pcase (or direction :below)
+	(:below (split-window-below))
+	(:right (split-window-right)))
+      (with-slots (buffer) obj
+	(other-window 1)
+	(switch-to-buffer buffer)))))
 
 (defun terminal-stop (obj)
   (with-slots (process) obj
@@ -112,29 +111,29 @@
       (progn
 	(delete-window window))))
 
-(cl-defmethod terminal-get-lang ((obj terminal))
+(cl-defmethod terminal-get-mode-config ((obj terminal))
   (with-slots (src) obj
-    (lang-get-buffer-lang src)))
+    (mode-config-get-buffer-mode-config src)))
 
 (cl-defmethod terminal-get-command ((obj terminal))
-  (with-slots (lang type src)  obj
-    (lang-buffer-command src lang 'repl type)))
+  (with-slots (mode-config type src)  obj
+    (mode-config-buffer-command src mode-config 'repl type)))
 
 (cl-defmethod terminal-init ((obj terminal))
-  (if-let* ((filetype (terminal-get-lang obj))
+  (if-let* ((filetype (terminal-get-mode-config obj))
 	    (T (intern (substr (symbol-name (slot-value obj 'type)) 1)))
-	    (command (lang-buffer-command (%. obj 'src) filetype 'repl T)))
+	    (command (mode-config-buffer-command (%. obj 'src) filetype 'repl T)))
       (progn
 	(setf (slot-value obj 'command) command)
-	(setf (slot-value obj 'lang) filetype)
+	(setf (slot-value obj 'mode-config) filetype)
 	(setf (slot-value obj 'mode) (terminal-get-major-mode obj))
 	(terminal-find-paths obj)
 	obj)))
 
 (defun terminal-shell-send-region ()
   (interactive)
-  (when (terminal-shell-live?)
-    (with-slots (process) terminal-shell
+  (when (terminal-shell-terminal-live?)
+    (with-slots (process) terminal-shell-terminal
 	(with-current-buffer (current-buffer)
 	  (process-send-string
 	   process
@@ -144,12 +143,12 @@
 		   "\n"))))))
 
 (defun terminal-shell-live? ()
-  (terminal-live? terminal-shell))
+  (terminal-live? terminal-shell-terminal))
 
 (defun terminal-shell-send-line ()
   (interactive)
-  (when (terminal-shell-live?)
-    (with-slots (process) terminal-shell
+  (when (terminal-shell-terminal-live?)
+    (with-slots (process) terminal-shell-terminal
 	(with-current-buffer (current-buffer)
 	  (process-send-string
 	   process
@@ -157,8 +156,8 @@
 
 (defun terminal-shell-send-buffer ()
   (interactive)
-  (when (terminal-shell-live?)
-    (with-slots (process) terminal-shell
+  (when (terminal-shell-terminal-live?)
+    (with-slots (process) terminal-shell-terminal
 	(with-current-buffer (current-buffer)
 	  (process-send-string
 	   process
@@ -202,38 +201,34 @@
 		    (point-max))
 		   "\n"))))))
 
-(defun terminal-shell-start (&optional direction)
+(defun terminal-shell-start ()
   (interactive)
-  (if (not (terminal-live? terminal-shell))
-      (terminal-start terminal-shell direction))
-  (message "shell is already running. Use SPC-xs or SPC-xv to split window"))
-
+  (if (not (terminal-live? terminal-shell-terminal))
+      (terminal-start terminal-shell-terminal)
+   (message "shell is already running. Use SPC-xs or SPC-xv to split window")))
 
 (defun terminal-shell-kill ()
   (interactive)
-  (if (terminal-live? terminal-shell)
+  (if (terminal-live? terminal-shell-terminal)
       (progn
-	(terminal-shell-hide)
-	(with-slots (process buffer) terminal-shell
+	(terminal-shell-terminal-hide)
+	(with-slots (process buffer) terminal-shell-terminal
 	  (kill-process process)
 	  (with-current-buffer buffer
 	    (set-buffer-modified-p nil)
 	    (kill-current-buffer)
-	    (setf (slot-value terminal-shell 'process) nil)
-	    (setf (slot-value terminal-shell 'buffer) nil))))
+	    (setf (slot-value terminal-shell-terminal 'process) nil)
+	    (setf (slot-value terminal-shell-terminal 'buffer) nil))))
     (message "REPL for shell is not running. SPC-xx to restart shell REPL")))
 
 (defun terminal-shell-split (&optional direction)
   (interactive)
-  (if (not (terminal-live? terminal-shell))
-      (terminal-shell-start direction)
-    (when (not (terminal-visible? terminal-shell))
-      (terminal-split terminal-shell direction))))
+  (terminal-split terminal-shell-terminal direction))
 
 (defun terminal-shell-hide ()
   (interactive)
-  (when (terminal-visible? terminal-shell)
-    (terminal-hide terminal-shell)))
+  (when (terminal-visible? terminal-shell-terminal)
+    (terminal-hide terminal-shell-terminal)))
 
 (defun terminal-buffer-init (&optional buf)
   (let* ((buf (or buf (current-buffer)))
@@ -276,14 +271,6 @@
   (interactive)
   (terminal-buffer! buf type (lambda (term) (terminal-split term :right))))
 
-(defun terminal-buffer-start-below (&optional buf type)
-  (interactive)
-  (terminal-buffer! buf type (lambda (term) (terminal-start term :below))))
-
-(defun terminal-buffer-start-right (&optional buf type)
-  (interactive)
-  (terminal-buffer! buf type (lambda (term) (terminal-start term :right))))
-
 (defun terminal-buffer-hide (&optional buf type)
   (interactive)
   (terminal-buffer! buf type (lambda (term) (terminal-hide term))))
@@ -323,14 +310,6 @@
 (defun terminal-cwd-right (&optional buf)
   (terminal-buffer! buf :cwd (lambda (term) (terminal-split term :right))))
 
-(defun terminal-cwd-start-below (&optional buf)
-  (interactive)
-  (terminal-buffer! buf :cwd (lambda (term) (terminal-start term :below))))
-
-(defun terminal-cwd-start-right (&optional buf split)
-  (interactive)
-  (terminal-buffer! buf :cwd (lambda (term) (terminal-start term :right))))
-
 (defun terminal-cwd-send-region (&optional buf)
   (interactive)
   (terminal-buffer! buf :cwd (lambda (term) (terminal-send-region term))))
@@ -358,14 +337,6 @@
 (defun terminal-workspace-right (&optional buf)
   (interactive)
   (terminal-buffer! buf :workspace (lambda (term) (terminal-split term :right))))
-
-(defun terminal-workspace-start-below (&optional buf split)
-  (interactive)
-  (terminal-buffer! buf :workspace (lambda (term) (terminal-start term :below))))
-
-(defun terminal-workspace-start-right (&optional buf split)
-  (interactive)
-  (terminal-buffer! buf :workspace (lambda (term) (terminal-start term :right))))
 
 (defun terminal-workspace-send-region (&optional buf)
   (interactive)

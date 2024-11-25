@@ -1,5 +1,5 @@
-(lang!
- :major-mode latex-mode
+(mode-config!
+ :id latex-mode
 
  :compile
  (buffer "pdflatex %buffer")
@@ -9,8 +9,8 @@
  (abbrev-mode t)
  (auto-fill-mode t))
 
-(lang!
- :major-mode LaTeX-mode
+(mode-config!
+ :id LaTeX-mode
 
  :compile
  (buffer "pdflatex %buffer")
