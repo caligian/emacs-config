@@ -21,23 +21,23 @@
 
 ;; (evil-set-initial-state 'messages-buffer-mode 'emacs)
 (evil-set-initial-state 'dired-mode 'emacs)
-(evil-set-initial-state 'term-mode 'insert)
-(evil-set-initial-state 'ansi-term-mode 'insert)
+(evil-set-initial-state 'term-mode 'emacs)
+(evil-set-initial-state 'ansi-term-mode 'emacs)
 
 (setq temp-buffer-patterns (list "\\*ansi-term"
-				 "\\*messages\\*"
-				 "\\*scratch\\*"
-				 "temp-buffer-*"))
+								 "\\*messages\\*"
+								 "\\*scratch\\*"
+								 "temp-buffer-*"))
 
 (defun temp-buffer-map-q ()
   (when-let* ((buf (current-buffer))
-	      (bufname (buffer-name buf))
-	      (has-local-map? (keymapp evil-normal-state-local-map))
-	      (matches? (cl-loop for pat in temp-buffer-patterns
-				 when (string-match-p pat bufname)
-				 return t)))
-    (with-current-buffer buf
-      (define-key evil-normal-state-local-map (kbd "q") 'delete-window))))
+			  (bufname (buffer-name buf))
+			  (has-local-map? (keymapp evil-normal-state-local-map))
+			  (matches? (cl-loop for pat in temp-buffer-patterns
+								 when (string-match-p pat bufname)
+								 return t)))
+	(with-current-buffer buf
+	  (define-key evil-normal-state-local-map (kbd "q") 'delete-window))))
 
 (add-hook 'buffer-list-update-hook 'temp-buffer-map-q)
 
@@ -48,6 +48,7 @@
 (require 'ts)
 (require 'ht)
 (require 'smartparens-config)
+
 (smartparens-global-mode)
 
 (defalias 'kbd! 'general-define-key)
@@ -79,18 +80,23 @@
       version-control t)
 (setq auto-save-file-name-transforms `((".*" "~/.emacs.d/backup")))
 (setq undo-tree-history-directory-alist (list '(".*" . "~/.emacs.d/cache")))
+(setq-default tab-width 4)
+(setq-default tab-stop-list nil)
 
 (evil-mode t)
 (recentf-mode 1)
 (winner-mode t)
-(menu-bar-mode -1)
-(scroll-bar-mode -1)
-(tool-bar-mode -1)
+
+(when (window-system)
+  (menu-bar-mode -1)
+  (scroll-bar-mode -1)
+  (tool-bar-mode -1))
+
 (global-display-line-numbers-mode)
-(set-frame-font "Fira Code 13" nil t)
+(set-frame-font "Liberation Mono 12" nil t)
 (set-language-environment "utf-8")
-(set-frame-parameter nil 'alpha-background 100)
-(add-to-list 'default-frame-alist '(alpha-background . 100))
+(set-frame-parameter nil 'alpha-background 95)
+(add-to-list 'default-frame-alist '(alpha-background . 95))
 (pixel-scroll-precision-mode t)
 (global-auto-revert-mode 1)
 (auto-insert-mode 1)
@@ -101,15 +107,30 @@
 
 (add-hook 'find-file-hook 'auto-insert)
 
+;; load api
 (load-file "~/.emacs.d/lisp/buffer.el")
 (load-file "~/.emacs.d/lisp/modes.el")
 (load-file "~/.emacs.d/lisp/repl.el")
 (load-file "~/.emacs.d/lisp/compiler.el")
 (load-file "~/.emacs.d/lisp/async-process.el")
 (load-file "~/.emacs.d/lisp/async-formatter.el")
+(load-file "~/.emacs.d/lisp/R.el")
 (load-file "~/.emacs.d/config/mappings.el")
 (load-file "~/.emacs.d/config/hooks.el")
 (load-file "~/.emacs.d/packages.el")
 
 (mode-config-load-directory)
-; (global-undo-tree-mode t)
+(setq indent-tabs-mode nil)
+(setq-default tab-width 4)
+
+;; some org stuff
+(setq org-babel-load-languages
+	  (append org-babel-load-languages '((R . t) (python . t))))
+
+(add-hook! org-mode-hook
+  (org-babel-do-load-languages '((R . t))))
+
+
+;; (global-undo-tree-mode t)
+
+(run-at-time (current-time) 300 'recentf-save-list)

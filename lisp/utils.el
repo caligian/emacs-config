@@ -86,6 +86,7 @@
 (defalias 'function? 'functionp)
 (defalias 'number? 'numberp)
 (defalias 'object? 'eieio-object-p)
+(defalias 'process-live? 'process-live-p)
 
 (defmacro add-mode-hook! (hook &rest body)
   (declare (indent 1))
@@ -109,10 +110,40 @@
 
 (defmacro assert (form msg &optional success)
   `(if (not ,form)
-       (if (list? ',msg)
-	   (error ,@msg)
-	 (error msg))
-     (or success t)))
+	   (if (list? ',msg)
+		   (error ,@msg)
+		 (error ,msg))
+	 (or success t)))
+
+(defmacro progn-lambda (&rest forms)
+  `(lambda nil ,@forms))
+
+(defmacro let-lambda (args &rest forms)
+  (declare (indent 1))
+  (cl-loop for a in args
+		   when (or (not (list? a))
+					(not (length= a 2)))
+		   do (error "expected form (VAR . VALUE), got %s" a))
+  `(lambda nil
+	 (let* ,args
+	   ,@forms)))
+
+(defmacro let-lambda* (args forms)
+  (declare (indent 1))
+  `(let-lambda ,args ,@forms))
+
+(funcall (let-lambda* ((a 1)
+					   (b 2)
+					   (c 3))
+		   ((+ a b c))))
+
+(defun partial-apply (fn &rest outer-args)
+  (lambda (&rest inner-args)
+	(apply fn (append outer-args inner-args))))
+
+(defun rpartial-apply (fn &rest outer-args)
+  (lambda (&rest inner-args)
+	(apply fn (append inner-args outer-args))))
 
 (load-file "~/.emacs.d/lisp/table.el")
 (load-file "~/.emacs.d/lisp/container.el")

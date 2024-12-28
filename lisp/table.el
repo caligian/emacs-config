@@ -410,8 +410,9 @@
 (defun from-alist% (p)
   (ht-from-alist p))
 
-(defun ->list (x)
-  (if (listp x) x (list x)))
+(defun ->list (x &optional force)
+  (if force (list x)
+    (if (listp x) x (list x))))
 
 (defun ->a-list (lst)
   (cl-loop for x from 0 below (- (length lst) 1)

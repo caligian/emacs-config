@@ -44,33 +44,33 @@
 				  (not=~ x "^[%#~.]" "[%#~.]$")))))))
 
 
-(defun path-exists-in-dir? (dir &rest regexes)
+(defun path-exists-in-dir? (dir &rest substrings)
   (cl-labels ((exists? (r fs)
 		(if-let* ((f (car fs)))
-		    (if (string-match-p r f)
+		    (if (cl-search r f)
 			t
 		      (exists? r (cdr fs))))))
-    (if-let* ((r (car regexes)))
+    (if-let* ((r (car substrings)))
 	(if (exists? r (if (listp dir) dir (list-files dir t)))
 	    dir
-	  (apply #'path-exists-in-dir? dir (cdr regexes))))))
+	  (apply #'path-exists-in-dir? dir (cdr substrings))))))
 
-(defun path-exists-in-subdir? (dir regexes &optional depth current-depth)
+(defun path-exists-in-subdir? (dir substrings &optional depth current-depth)
   (let* ((depth (or depth 5))
 	 (current-depth (or current-depth 1)))
     (when (and (< current-depth depth)
 	       (not (equal dir "/")))
-      (if (not (apply #'path-exists-in-dir? dir regexes))
+      (if (not (apply #'path-exists-in-dir? dir substrings))
 	  (path-exists-in-subdir?
 	   (dirname dir)
-	   regexes
+	   substrings
 	   depth
 	   (+ current-depth 1))
 	dir))))
 
-(cl-defun find-buffer-workspace (buf &optional regex depth)
+(cl-defun find-buffer-workspace (buf &optional substrings depth)
   (when-let* ((found (path-exists-in-subdir? (dirname buf)
-					     (or regex (list "\\.git"))
+					     (or substrings (list ".git"))
 					     (or depth 4))))
     (%! buffer-workspaces buf found)
     (fset% workspace-buffers found buf t)

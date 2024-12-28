@@ -4,13 +4,16 @@
  :formatter "black -"
 
  :compile
- (buffer "python3 %path")
- (cwd "cd %path && python3 %buffer")
+ (buffer "ipython %path")
+ (cwd "cd %path && ipython %buffer")
 
  :repl
- (buffer "python3")
- (workspace "python3")
- (cwd "python3")
+ (buffer "ipython")
+ (workspace "ipython")
+ (cwd "ipython")
+
+ :repl-use-input-file
+ "load -y %s"
 
  :hooks
  (eglot-ensure))

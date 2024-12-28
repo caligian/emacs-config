@@ -14,28 +14,44 @@
   :group 'repl)
 
 (defclass user-repl ()
-  ((process :initarg :process
-	    :initform nil)
-   (process-buffer :initarg :process-buffer
-		   :initform nil)
-   (working-dir :initarg :working-dir)
-   (type :initarg :type
-	 :initform :buffer)
-   (command :initarg :command
-	    :initform nil)
-   (mode-config :initarg :mode-config)))
+  ((process
+    :initarg :process
+    :initform nil)
+   (process-buffer
+    :initarg :process-buffer
+    :initform nil)
+   (working-dir
+    :initarg :working-dir)
+   (type
+    :initarg :type
+    :initform :buffer)
+   (command
+    :initarg :command
+    :initform nil)
+   (input-filter
+    :initarg :input-filter
+    :initform (lambda (s) s))
+   (use-input-file
+    :initarg :use-input-file
+    :initform nil)
+   (help
+    :initarg :help
+    :initform (lambda (s) (concat "help" "(" s ")")))
+   (mode-config
+    :initarg :mode-config)))
 
 ;; id <buffer> <repl> OR
 ;; id workspace <repl> OR
 ;; id cwd <repl> 
 (setq repls (ht))
 (setq repl-shell (user-repl :working-dir "/home/skeletor"
-			    :type :shell
-			    :command repl-shell-command))
-
+							:type :shell
+							:mode-config (%. mode-configs 'shell)
+							:command repl-shell-command))
 
 (cl-defmethod repl-live? ((it user-repl))
-  (process-live-p (%. it 'process)))
+  (with-slots (process) it
+    (process-live-p process)))
 
 (cl-defmethod repl-start ((it user-repl))
   (when (not (repl-live? it))
@@ -84,15 +100,27 @@
   (if-let* ((window (get-buffer-window (%. it 'process-buffer))))
       (delete-window window)))
 
+(defmacro repl-delete-input-file (path &optional time)
+  `(run-at-time (or ,time "5 sec") nil (progn-lambda (f-delete ,path))))
+
+
 (cl-defmethod repl-send-string ((it user-repl) s)
   (when (repl-live? it)
-    (process-send-string (%. it 'process)
-			 (concat s "\n"))))
+	(with-slots (input-filter use-input-file) it
+      (let* ((s (if (string? s) s (string-join s "\n")))
+			 (s (funcall input-filter s it)))
+		(if use-input-file
+			(let* ((tempfile (when use-input-file (make-temp-file "repl-input-")))
+				   (tempfile-s (concat (format use-input-file tempfile) "\r\n")))
+			  (f-write s 'utf-8 tempfile)
+			  (process-send-string (%. it 'process) tempfile-s)
+			  (repl-delete-input-file tempfile))
+		  (process-send-string (%. it 'process) (concat s "\r")))))))
 
-(defmacro repl--create-shell-functions ()
-  `(dolist (name '("start" "stop" "hide" "stop" "split" "split-right"))
-     (eval (append@ (list 'defun (intern (concat "repl-shell-" name)) nil '(interactive))
-		    (list (intern (concat "repl-" name)) repl-shell)))))
+(defun repl--create-shell-functions ()
+  (dolist (name '("start" "stop" "hide" "stop" "split" "split-right"))
+    (eval (append@ (list 'defun (intern (concat "repl-shell-" name)) nil '(interactive))
+				   (list (intern (concat "repl-" name)) repl-shell)))))
 
 (defun repl-shell-send-region ()
   (interactive)
@@ -145,29 +173,41 @@
 
 (defun repl-buffer-init (buf type &optional command)
   (when-let* ((buf (or buf (current-buffer)))
-	      (type (or type 'buffer))
-	      (mm (buffer-major-mode buf))
-	      (working-dir (pcase type
-			     ('workspace (find-buffer-workspace buf))
-			     (_ (dirname buf))))
-	      (config (%. mode-configs mm))
-	      (command (or command (%. config 'repl type)))
-	      (x (user-repl :type type
-			    :command command
-			    :working-dir working-dir
-			    :mode-config config)))
-    (pcase type
-      ('buffer
-       (%! repls buf x))
-      (_
-       (%! repls working-dir x)))
+			  (type (or type 'buffer))
+			  (mm (buffer-major-mode buf))
+			  (working-dir (pcase type
+							 ('workspace (find-buffer-workspace buf))
+							 (_ (dirname buf))))
+			  (config (%. mode-configs mm))
+			  (command (or command (%. config 'repl type)))
+			  (x (user-repl
+				  :type type
+				  :command command
+				  :working-dir working-dir
+				  :mode-config config)))
+	(with-slots (repl-input-filter repl-help repl-use-input-file) config
+	  (when repl-input-filter
+		(%! x 'input-filter repl-input-filter))
+	  (when repl-help
+		(%! x 'help repl-help))
+	  (when repl-use-input-file
+		(%! x 'use-input-file repl-use-input-file))
+	  (pcase type
+		('buffer
+		 (%! repls buf x))
+		(_
+		 (%! repls working-dir x))))
     x))
 
 (defmacro repl-live-dispatch (BUF TYPE &rest forms)
   (declare (indent 2))
-  `(when-let* ((it (repl-find-buffer-repl ,BUF ',TYPE)))
+  `(when-let* ((it (repl-find-buffer-repl ,BUF ',TYPE))
+	       (buf ,BUF)
+	       (type ',TYPE))
      (declare (ignore it))
-     (funcall (lambda (buf type) ,@forms) ,BUF ',TYPE)))
+     (declare (ignore buf))
+     (declare (ignore type))
+     ,@forms))
 
 (defmacro repl-dispatch (BUF TYPE &rest forms)
   (setq fn (gensym))
@@ -177,6 +217,8 @@
 	       (buf ,BUF)
 	       (type ',TYPE))
      (declare (ignore it))
+     (declare (ignore buf))
+     (declare (ignore type))
      ,@forms))
 
 (defun repl-buffer-send-region (buf type)
@@ -184,31 +226,29 @@
     (with-slots (process) it
       (with-current-buffer buf
 	(when (mark)
-	  (process-send-string
-	   process
-	   (concat (buffer-substring-no-properties (mark) (point)) "\n")))))))
+	  (repl-send-string
+	   it
+	   (buffer-substring-no-properties (mark) (point))))))))
 
 (defun repl-buffer-send-line (buf type)
   (when-let* ((it (repl-find-buffer-repl buf type)))
     (with-slots (process) it
       (with-current-buffer buf
-	(process-send-string
-	 process
-	 (concat (buffer-substring-no-properties
-		  (line-beginning-position)
-		  (line-end-position))
-		 "\n"))))))
+	(repl-send-string
+	 it
+	 (buffer-substring-no-properties
+	  (line-beginning-position)
+	  (line-end-position)))))))
 
 (defun repl-buffer-send-buffer (buf type)
   (when-let* ((it (repl-find-buffer-repl buf type)))
     (with-slots (process) it
 	(with-current-buffer buf
-	  (process-send-string
-	   process
-	   (concat (buffer-substring-no-properties
-		    (point-min)
-		    (point-max))
-		   "\n"))))))
+	  (repl-send-string
+	   it
+	   (buffer-substring-no-properties
+	    (point-min)
+	    (point-max)))))))
 
 (defmacro repl--dispatch-send-string-mapping-function (type name)
   (declare (indent 3))
@@ -259,6 +299,42 @@
 				      (,form (append@ ,form (list ,fn-name 'it))))
 				 (eval ,form)))))))
 
+(defun repl-create-mappings ()
+  (general-define-key
+   :states 'normal :prefix "-"
+   :keymaps 'repl-mode-map
+   "-" 'repl-mapping-workspace-start
+   "s" 'repl-mapping-workspace-split
+   "v" 'repl-mapping-workspace-split-right
+   "e" 'repl-mapping-workspace-send-line
+   "b" 'repl-mapping-workspace-send-buffer
+   "k" 'repl-mapping-workspace-hide
+   "q" 'repl-mapping-workspace-stop)
+
+  (general-define-key
+   :states 'normal :prefix "SPC r"
+   :keymaps 'repl-mode-map
+   "r" 'repl-mapping-buffer-start
+   "s" 'repl-mapping-buffer-split
+   "v" 'repl-mapping-buffer-split-right
+   "e" 'repl-mapping-buffer-send-line
+   "b" 'repl-mapping-buffer-send-buffer
+   "k" 'repl-mapping-buffer-hide
+   "q" 'repl-mapping-buffer-stop)
+
+  (general-define-key
+   :keymaps 'repl-mode-map
+   :states 'visual
+   "-e" 'repl-mapping-workspace-send-region
+   "<return>" 'repl-mapping-buffer-send-region
+   "S-<return>" 'repl-mapping-workspace-send-region
+   "SPC re" 'repl-mapping-buffer-send-region)
+
+  (general-define-key
+   :states 'visual
+   "SPC xe" 'repl-shell-send-region
+   "C-SPC" 'repl-shell-send-region))
+
 (repl--create-mapping-functions)
 
 (general-define-key
@@ -271,33 +347,4 @@
  "k" 'repl-shell-hide
  "q" 'repl-shell-stop)
 
-(general-define-key
- :states 'normal :prefix "SPC mr"
- "r" 'repl-mapping-workspace-start
- "s" 'repl-mapping-workspace-split
- "v" 'repl-mapping-workspace-split-right
- "e" 'repl-mapping-workspace-send-line
- "b" 'repl-mapping-workspace-send-buffer
- "k" 'repl-mapping-workspace-hide
- "q" 'repl-mapping-workspace-stop)
 
-(general-define-key
- :states 'normal :prefix "SPC r"
- "r" 'repl-mapping-buffer-start
- "s" 'repl-mapping-buffer-split
- "v" 'repl-mapping-buffer-split-right
- "e" 'repl-mapping-buffer-send-line
- "b" 'repl-mapping-buffer-send-buffer
- "k" 'repl-mapping-buffer-hide
- "q" 'repl-mapping-buffer-stop)
-
-(general-define-key
- :states 'visual
- "SPC xe" 'repl-shell-send-region
- "SPC mre" 'repl-mapping-workspace-send-region
- "SPC re" 'repl-mapping-buffer-send-region)
-
-
-;; (setq buf (find-file-noselect "/home/skeletor/Work/mum/o/list_progress.py"))
-;; (with-current-buffer buf
-;;   (repl-mapping-buffer-split-right))

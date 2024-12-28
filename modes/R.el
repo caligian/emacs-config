@@ -1,42 +1,33 @@
 (mode-config!
  :id ess-r-mode
-
  :compile
  (buffer "R %buffer")
  (workspace "cd %path && R %buffer")
  (cwd "cd %path && R %buffer")
 
- :repl
- (buffer "R")
- (workspace "cd %path && R")
- (cwd "cd %path && R")
-
  :map
- (normal :prefix "SPC e"
-	 "f" ess-load-file
-	 "d" ess-eval-function
-	 "e" ess-eval-line
-	 "b" ess-eval-buffer
-	 "D" ess-eval-function-and-go
-	 "E" ess-eval-line-and-go
-	 "B" ess-eval-buffer-and-go)
-
- (normal "K" ess-display-help-on-object
-	 "C-n" ess-complete-object-name)
-
  (normal :prefix "SPC r"
-	 "s" ess-switch-to-inferior-or-script-buffer
-	 "r" R)
+		 "r" R-start
+		 "e" R-eval-line
+		 "b" R-eval-buffer
+		 "E" R-eval-region
+		 "k" R-hide
+		 "s" R-split-below
+		 "v" R-split-right)
 
- (visual :prefix "SPC e"
-	 "e" ess-eval-region
-	 "E" ess-eval-region-and-go)
-
- (normal :prefix "SPC m"
-	 "i" ess-install-library)
-
- (normal "q" delete-window)
+ (visual :prefix "SPC r"
+		 "e" R-eval-region)
 
  :hooks
- (abbrev-mode t))
+ (setq-local ess-indent-level 2
+			 ess-indent-offset 2
+			 ess-ask-for-ess-directory t
+			 ess-eval-visibly t
+			 ess-use-tracebug t)
+ (setq-local tab-width 2)
+ (abbrev-mode t)
 
+ :project
+ (default
+  (".git" "lib")
+  :run "R main.R"))

@@ -69,26 +69,6 @@
  :states 'visual
  "y" "\"+y")
 
-;; (kbd!
-;;  :states 'normal
-;;  :prefix "SPC x"
-;;  "x" (lambda ()
-;;        (interactive)
-;;        (terminal-shell-start :below))
-;;  "s" #'terminal-shell-split
-;;  "v" (lambda nil
-;;        (interactive)
-;;        (terminal-shell-split :right))
-;;  "k" #'terminal-shell-hide
-;;  "q" #'terminal-shell-kill
-;;  "e" #'terminal-shell-send-line
-;;  "b" #'terminal-shell-send-buffer)
-
-(kbd!
- :states 'visual
- :prefix "SPC x"
- "e" #'terminal-shell-send-region)
-
 (kbd!
  :states 'normal
  :prefix "SPC"
@@ -112,4 +92,38 @@
  "g?" 'magit-status)
 
 (kbd!
- "M-/" 'hippie-expand)
+ "M-/" 'hippie-expand
+ "M-SPC" 'company-complete-common
+ "M-=" 'align-regexp
+ "M-_" 'count-words-region)
+
+(kbd!
+ :states 'normal
+ :prefix "SPC"
+ "." 'counsel-projectile-switch-to-buffer
+ ">" 'counsel-projectile-switch-project
+ "/" 'counsel-projectile-rg
+ "'" 'ivy-resume)
+
+(kbd! :states '(normal)
+      :keymaps 'flymake-mode-map
+      "M-n" 'flymake-goto-next-error
+      "M-p" 'flymake-goto-prev-error
+      "SPC l?" 'flymake-show-buffer-diagnostics
+      "SPC ld" 'flymake-show-project-diagnostics
+      "SPC lf" 'eglot-format-buffer)
+
+(kbd! :keymaps 'term-mode-map
+      "C-w C-h" 'windmove-left
+      "C-w C-l" 'windmove-right
+      "C-w C-j" 'windmove-down
+      "C-w C-k" 'windmove-up)
+
+(kbd! :prefix "SPC"
+	  :states '(normal)
+	  :keymaps 'org-mode-map
+	  "m" (general-key "C-c")
+	  "v" (general-key "C-c C-v")
+	  "!" 'org-babel-hide-result-toggle-maybe
+	  "cb" 'org-babel-execute-buffer
+	  "cc" 'org-babel-execute-src-block)
