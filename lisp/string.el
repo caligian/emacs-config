@@ -25,6 +25,11 @@
 	   until (not (string-match r string))
 	   return t))
 
+(defun !=~ (string &rest regexes)
+ (cl-loop for r in regexes
+	   until (string-match r string)
+	   return t))
+
 (defun not=~ (string &rest regexes)
  (cl-loop for r in regexes
 	   until (string-match r string)
@@ -33,24 +38,33 @@
 (defalias 'char-at/ 'substr1)
 (defalias 'slice/ 'substr)
 
+(defun strip (s)
+  (replace/ s "^[ ]*" "" "[ ]*$" ""))
+
+(defun lstip (s)
+  (replace/ s "^[ ]*" ""))
+
+(defun rstip (s)
+  (replace/ s "[ ]*$" ""))
+
 (cl-defun match/ (s re &key (start 0) (capture nil))
   (let* ((match (string-match re s (or start 0)))
-	 (start (match-beginning 0))
-	 (end (match-end 0)))
-    (if capture
-	(list start end (slice/ s start end))
-      (list start end))))
+		 (start (match-beginning 0))
+		 (end (match-end 0)))
+	(if capture
+		(list start end (slice/ s start end))
+	  (list start end))))
 
 (cl-defun grep/ (s re &key (start 0) (capture t))
   (when-let* ((matches? (string-match re s (or start 0)))
-	      (data (match-data 1 nil 1)))
-    (cl-loop for x from 0 below (length data)
-	     when (= (% x 2) 0)
-	     collect (if capture
-			 (when-let* ((xy (list (nth x data) (nth (1+ x) data)))
-				     (matched (substr s (car xy) (cadr xy))))
-			   `(,@xy ,matched))
-		       (list (nth x data) (nth (1+ x) data))))))
+			  (data (match-data 1 nil 1)))
+	(cl-loop for x from 0 below (length data)
+			 when (= (% x 2) 0)
+			 collect (if capture
+						 (when-let* ((xy (list (nth x data) (nth (1+ x) data)))
+									 (matched (substr s (car xy) (cadr xy))))
+						   `(,@xy ,matched))
+					   (list (nth x data) (nth (1+ x) data))))))
 
 (defun replace/ (s &rest forms)
   (let* ((final s))
@@ -63,3 +77,5 @@
     final))
 
 (defalias 'sed/ 'replace/)
+
+(defalias 'split/ 'string-split)

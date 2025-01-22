@@ -1,9 +1,45 @@
-(setq config-directory "~/.emacs.d")
+(setq config-directory "~/.emacs.d") 
+(setq system-types (list 'integer 'number 'float
+			 'symbol
+			 'string 'array 'cons 'list
+			 'marker
+			 'overlay
+			 'window-configuration
+			 'process
+			 'window
+			 'subr
+			 'compiled-function
+			 'buffer
+			 'char-type
+			 'vector 'bool-vector
+			 'hash-table
+			 'font-spec 'font-object 'font-entity))
+
+(defun assert (test &rest format-args)
+  (unless test
+    (funcall 'error format-args))
+  t)
+
+(defmacro typecheck (let-forms &rest body)
+  `(progn
+     (cl-loop for binding in ',let-forms
+	      do (let* ((type (car binding))
+			(obj (cadr binding))
+			(obj-type (type-of obj)))
+		   (unless (eq obj-type type)
+		     (error "expected [%s], got [%s] %s" type obj-type obj))))
+     ,@body))
+
+(defun assert-type (type obj)
+  (let* ((obj-type (type-of obj)))
+    (unless (eq obj-type obj)
+      (error "expected [%s], got [%s] %s" type obj-type obj))
+    t))
 
 (defun alistp (x)
   (when-let* ((test (list? x))
 	      (first-value (nth 0 x)))
-  (container? first-value)))
+    (container? first-value)))
 
 (defalias 'alist? 'alistp)
 
@@ -110,10 +146,10 @@
 
 (defmacro assert (form msg &optional success)
   `(if (not ,form)
-	   (if (list? ',msg)
-		   (error ,@msg)
-		 (error ,msg))
-	 (or success t)))
+       (if (list? ',msg)
+	   (error ,@msg)
+	 (error ,msg))
+     (or success t)))
 
 (defmacro progn-lambda (&rest forms)
   `(lambda nil ,@forms))
@@ -121,29 +157,24 @@
 (defmacro let-lambda (args &rest forms)
   (declare (indent 1))
   (cl-loop for a in args
-		   when (or (not (list? a))
-					(not (length= a 2)))
-		   do (error "expected form (VAR . VALUE), got %s" a))
+	   when (or (not (list? a))
+		    (not (length= a 2)))
+	   do (error "expected form (VAR . VALUE), got %s" a))
   `(lambda nil
-	 (let* ,args
-	   ,@forms)))
+     (let* ,args
+       ,@forms)))
 
 (defmacro let-lambda* (args forms)
   (declare (indent 1))
   `(let-lambda ,args ,@forms))
 
-(funcall (let-lambda* ((a 1)
-					   (b 2)
-					   (c 3))
-		   ((+ a b c))))
-
 (defun partial-apply (fn &rest outer-args)
   (lambda (&rest inner-args)
-	(apply fn (append outer-args inner-args))))
+    (apply fn (append outer-args inner-args))))
 
 (defun rpartial-apply (fn &rest outer-args)
   (lambda (&rest inner-args)
-	(apply fn (append inner-args outer-args))))
+    (apply fn (append inner-args outer-args))))
 
 (load-file "~/.emacs.d/lisp/table.el")
 (load-file "~/.emacs.d/lisp/container.el")

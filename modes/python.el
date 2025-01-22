@@ -16,4 +16,4 @@
  "load -y %s"
 
  :hooks
- (eglot-ensure))
+ (lsp))

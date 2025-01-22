@@ -70,11 +70,11 @@
 
 (cl-defun find-buffer-workspace (buf &optional substrings depth)
   (when-let* ((found (path-exists-in-subdir? (dirname buf)
-					     (or substrings (list ".git"))
-					     (or depth 4))))
-    (%! buffer-workspaces buf found)
-    (fset% workspace-buffers found buf t)
-    found))
+											 (or substrings (list ".git"))
+											 (or depth 4))))
+	(%! buffer-workspaces buf found)
+	(fset% workspace-buffers found buf t)
+	found))
 
 (defun workspace-buffer? (ws buf)
   (when-let* ((buf (if (string? buf)

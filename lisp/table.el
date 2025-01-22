@@ -154,15 +154,26 @@
       (progn (setf (nth last-key found) value)
 	     lst)))
 
+
 (defun rm@ (lst &rest ks)
-  (if (= (length ks) 1)
-      (let* ((popped (nth (car ks) lst)))
-	(pop (nthcdr (last@ ks) lst))
-	popped)
-    (if-let* ((found (apply 'get@ lst (butlast ks)))
-	      (valid? (listp found)))
-	(progn (pop (nthcdr (last@ ks) found))
-	       found))))
+  (let* ((remove
+		  (lambda (-lst &rest -ks)
+			(if (= (length -ks) 1)
+				(let* ((popped (nth (car -ks) -lst)))
+				  (pop (nthcdr (last@ -ks) -lst))
+				  popped)
+			  (if-let* ((found (apply 'get@ -lst (butlast -ks)))
+						(valid? (listp found)))
+				  (progn
+					(pop (nthcdr (last@ -ks) found))
+					found)))))
+		 (lc (length lst))
+		 (ks (map@ ks (lambda (k)
+						(cond
+						 ((< k 0) (+ lc k))
+						 ((< k lc) k)
+						 (t nil))))))
+	(map@ ks (partial-apply remove lst))))
 
 (defun rm% (h &rest ks)
   (if (= (length ks) 1)
@@ -265,27 +276,50 @@
 					x
 				      (list x)))))
 
+(defun reject% (h &rest ks)
+  (let* ((out (ht))
+		 (KS (keys% h))
+		 (selected (cl-loop for k in KS
+							when (not (index@ ks k))
+							collect k)))
+	(apply 'select% h selected)))
+
+(defun seq-along (lst)
+  (range@ 0 (length lst)))
+
+(defun reject@ (lst &rest ks)
+  (let* ((out (ht))
+		 (KS (seq-along lst))
+		 (selected (cl-loop for k in KS
+							when (not (index@ ks k))
+							collect k)))
+	(apply 'select@ lst selected)))
+
 (defun select% (h &rest ks)
   (let* ((out (ht))
-	 (required (map@ ks (lambda (k)
-			      (if (listp k)
-				  (apply 'get% h k)
-				(get% h k))))))
-    (each@ (range@ 0 (length required))
-	   (lambda (i)
-	     (let* ((k (nth@ ks i))
-		    (v (nth@ required i)))
-	       (if (listp k)
-		   (apply #'set% out (append@ k v))
-		 (set% out k v)))))
-    out))
+		 (required (map@ ks (lambda (k)
+							  (if (listp k)
+								  (apply 'get% h k)
+								(get% h k))))))
+	(each@ (range@ 0 (length required))
+		   (lambda (i)
+			 (let* ((k (nth@ ks i))
+					(v (nth@ required i)))
+			   (if (listp k)
+				   (apply #'set% out (append@ k v))
+				 (set% out k v)))))
+	out))
 
-(defun pop@ (lst &rest ks)
-  (let* ((out (list)))
-    (dolist (k ks)
-      (let* ((v (apply #'rm@ lst (->list k))))
-	(setq out (append@ out v))))
-    out))
+(defun pop@ (lst &optional times)
+  (let* ((out (list))
+		 (ln (length lst))
+		 (times (or times 1)))
+	(cl-loop for i from 1 upto times
+			 when (not (= ln 0))
+			 do (progn
+				  (setq out (append out (rm@ lst (1- ln))))
+				  (setq ln (- ln 1))))
+	(reverse out)))
 
 ;; ks: string | list[string]...
 (defun pop% (h &rest ks)

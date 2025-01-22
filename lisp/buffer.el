@@ -1,5 +1,4 @@
 (setq buffer-workspaces (ht))
-(setq buffer-cwds (ht))
 
 (defun buffer-get-region (buf)
   (with-current-buffer buf
@@ -24,8 +23,8 @@
     (save-excursion
       (goto-line line)
       (beginning-of-line)
-      (dolist (s strings)
-	(insert s)))))
+	  (dolist (s strings)
+		(insert s)))))
 
 (defun buffer-append-at-line (buf line strings)
   (with-current-buffer buf
@@ -145,4 +144,21 @@
 		   when (string-match-p regex (buffer-name buf))
 		   return t))
 
-(buffer-regexp-exists? "[*]R:")
+(cl-defun buffer-get-lines (buf &optional start-row end-row)
+  (when-let* ((lc (buffer-line-count buf))
+			  (with-offset (lambda (i)
+							 (cond
+							  ((< i 0) (+ lc i))
+							  ((<= i lc) i)
+							  (t nil))))
+			  (start-row (funcall with-offset (or start-row 1)))
+			  (end-row (funcall with-offset (or end-row -1))))
+	(with-current-buffer buf
+	  (save-excursion
+		(goto-line start-row)
+		(beginning-of-line)
+		(set-mark (point))
+		(goto-line end-row)
+		(end-of-line)
+		(deactivate-mark)
+		(buffer-get-region buf)))))
