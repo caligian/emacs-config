@@ -1,5 +1,3 @@
-(setq evil-undo-system 'undo-fu)
-
 ;; load use-package
 (straight-use-package 'project)
 (straight-use-package 'tree-sitter)
@@ -20,11 +18,7 @@
   :config
   (require 'evil-collection)) 
 
-(use-package undo-fu
-  :config
-  (kbd! :states '(visual normal)
-		"u" 'undo-fu-only-undo
-		"C-r" 'undo-fu-only-redo))
+(use-package undo-fu)
 
 (use-package evil-surround
   :config
@@ -53,19 +47,13 @@
 
 (use-package projectile
   :config
-  (projectile-mode +1)
-  (general-define-key
-   :states 'normal
-   "SPC p" #'projectile-command-map))
+  (projectile-mode +1))
 
 (use-package counsel-projectile
   :config
   (counsel-projectile-mode))
 
-(use-package kaolin-themes
-  :config
-  ;; (load-theme 'kaolin-aurora t)
-  )
+(use-package kaolin-themes)
 
 (use-package ivy
   :config
@@ -73,17 +61,7 @@
 
 (use-package counsel
   :config
-  (counsel-mode 1)
-  (general-define-key
-   :states 'normal
-   :prefix "SPC"
-   "fr" 'counsel-recentf
-   "hc" 'counsel-load-theme
-   "hf" 'counsel-describe-function
-   "hv" 'counsel-describe-variable
-   "ff" 'counsel-find-file
-   "bb" 'counsel-switch-buffer
-   "fg" 'counsel-git))
+  (counsel-mode 1))
 
 (use-package company-box
   :hook (company-mode . company-box-mode))
@@ -91,12 +69,6 @@
 (use-package all-the-icons)
 
 (use-package company 
-  :init 
-  (setq company-selection-wrap-around t
-		company-tooltip-align-annotations t
-		company-idle-delay 0.45
-		company-minimum-prefix-length 3
-		company-tooltip-limit 10)
   :config
   (global-company-mode t))
 
@@ -106,9 +78,7 @@
 
 (use-package yasnippet
   :config
-  (yas-global-mode t)
-  ;; (add-to-list 'company-backends 'company-yasnippet)
-  (kbd! :states 'normal :prefix "SPC" "&" (general-key "C-c &")))
+  (yas-global-mode t))
 
 (use-package doom-modeline
   :ensure t
@@ -144,16 +114,6 @@
 
 (use-package auctex)
 
-(use-package ess-plot
-  :straight (ess-plot
-			 :type git
-			 :host github
-			 :repo "DennieTeMolder/ess-plot")
-  :config
-  (kbd! :keymaps 'ess-r-mode
-		:prefix "SPC m"
-		"p" 'ess-plot-toggle))
-
 (use-package outline-indent
   :custom
   (outline-indent-ellipsis " ▼ ")
@@ -167,22 +127,15 @@
    pipenv-projectile-after-switch-function
    #'pipenv-projectile-after-switch-extended))
 
-(use-package ivy-yasnippet
-  :config
-  (kbd! :states 'normal :prefix "SPC &" "." 'ivy-yasnippet))
+(use-package ivy-yasnippet)
 
 (use-package mono-complete
   :config
-  (setq mono-complete-fallback-command 'tab-to-tab-stop)
   (define-key mono-complete-mode-map (kbd "<tab>") 'mono-complete-expand-or-fallback))
 
 (use-package highlight-defined
   :config
   (highlight-defined-mode))
-
-(use-package elisp-autofmt
-  :config
-  (add-hook! emacs-lisp-mode-hook (elisp-autofmt-mode)))
 
 (use-package eros
   :config
@@ -277,25 +230,6 @@
   (centaur-tabs-mode 1)
   (centaur-tabs-group-by-projectile-project)
 
-  (setq
-   centaur-tabs-set-icons t
-   centaur-tabs-height 32
-   centaur-tabs-set-bar 'under)
-
-  (kbd!
-   :states '(normal)
-   :prefix "SPC t"
-   "t" 'centaur-tabs--create-new-tab
-   "n" 'centaur-tabs-forward
-   "n" 'centaur-tabs-forward
-   "p" 'centaur-tabs-backward
-   "." 'centaur-tabs-counsel-switch-group
-   "f" 'centaur-tabs-forward-group
-   "b" 'centaur-tabs-backward-group
-   "0" 'centaur-tabs-select-beg-tab
-   "$" 'centaur-tabs-select-end-tab
-   "q" 'centaur-tabs-kill-all-buffers-in-current-group)
-
   (define-key evil-normal-state-map (kbd "g t") 'centaur-tabs-forward)
   (define-key evil-normal-state-map (kbd "g T") 'centaur-tabs-backward))
 
@@ -313,76 +247,14 @@
 
 (use-package recentf
   :config
-  (recentf-mode 1)
-  (setq
-   recentf-save-file "~/.cache/emacs/recentf"
-   recentf-max-saved-items 10000
-   recentf-max-menu-items 5000)
-  (run-at-time nil 300 'recentf-save-list))
+  (recentf-mode 1))
 
 (use-package treemacs
   :config
-  (setq treemacs-collapse-dirs                   (if treemacs-python-executable 3 0)
-		treemacs-deferred-git-apply-delay        0.5
-		treemacs-directory-name-transformer      #'identity
-		treemacs-display-in-side-window          t
-		treemacs-eldoc-display                   'simple
-		treemacs-file-event-delay                2000
-		treemacs-file-extension-regex            treemacs-last-period-regex-value
-		treemacs-file-follow-delay               0.2
-		treemacs-file-name-transformer           #'identity
-		treemacs-follow-after-init               t
-		treemacs-expand-after-init               t
-		treemacs-find-workspace-method           'find-for-file-or-pick-first
-		treemacs-git-command-pipe                ""
-		treemacs-goto-tag-strategy               'refetch-index
-		treemacs-header-scroll-indicators        '(nil . "^^^^^^")
-		treemacs-hide-dot-git-directory          t
-		treemacs-indentation                     2
-		treemacs-indentation-string              " "
-		treemacs-is-never-other-window           nil
-		treemacs-max-git-entries                 5000
-		treemacs-missing-project-action          'ask
-		treemacs-move-files-by-mouse-dragging    t
-		treemacs-move-forward-on-expand          nil
-		treemacs-no-png-images                   nil
-		treemacs-no-delete-other-windows         t
-		treemacs-project-follow-cleanup          nil
-		treemacs-persist-file                    (expand-file-name ".cache/treemacs-persist" user-emacs-directory)
-		treemacs-position                        'left
-		treemacs-read-string-input               'from-child-frame
-		treemacs-recenter-distance               0.1
-		treemacs-recenter-after-file-follow      nil
-		treemacs-recenter-after-tag-follow       nil
-		treemacs-recenter-after-project-jump     'always
-		treemacs-recenter-after-project-expand   'on-distance
-		treemacs-litter-directories              '("/node_modules" "/.venv" "/.cask")
-		treemacs-project-follow-into-home        nil
-		treemacs-show-cursor                     nil
-		treemacs-show-hidden-files               t
-		treemacs-silent-filewatch                nil
-		treemacs-silent-refresh                  nil
-		treemacs-sorting                         'alphabetic-asc
-		treemacs-select-when-already-in-treemacs 'move-back
-		treemacs-space-between-root-nodes        t
-		treemacs-tag-follow-cleanup              t
-		treemacs-tag-follow-delay                1.5
-		treemacs-text-scale                      nil
-		treemacs-user-mode-line-format           nil
-		treemacs-user-header-line-format         nil
-		treemacs-wide-toggle-width               70
-		treemacs-width                           35
-		treemacs-width-increment                 1
-		treemacs-width-is-initially-locked       t
-		treemacs-workspace-switch-cleanup        nil)
-
-  ;; The default width and height of the icons is 22 pixels. If you are
-  ;; using a Hi-DPI display, uncomment this to double the icon size.
-  ;;(treemacs-resize-icons 44)
-
   (treemacs-follow-mode t)
   (treemacs-filewatch-mode t)
   (treemacs-fringe-indicator-mode 'always)
+
   (when treemacs-python-executable
     (treemacs-git-commit-diff-mode t))
 
@@ -393,13 +265,7 @@
     (`(t . _)
      (treemacs-git-mode 'simple)))
 
-  (treemacs-hide-gitignored-files-mode nil)
-
-  (kbd! :states 'normal
-		"SPC ``" 'treemacs
-		"SPC `b" 'treemacs-bookmark
-		"SPC `f" 'treemacs-find-file
-		"SPC `t" 'treemacs-find-tag))
+  (treemacs-hide-gitignored-files-mode nil))
 
 (use-package treemacs-evil
   :after (treemacs evil)
@@ -425,23 +291,17 @@
   :hook ((lsp-mode . lsp-enable-which-key-integration))
   :config
   (evil-define-key 'normal lsp-mode-map (kbd "SPC l") lsp-command-map)
-  (setq lsp-modeline-diagnostics-scope :workspace
-		lsp-headerline-breadcrumb-segments 'symbols)
   :commands lsp)
 
 (use-package lsp-ui
   :commands lsp-ui-mode)
 
 (use-package lsp-ivy
-  :commands lsp-ivy-workspace-symbol
-  :config
-  (kbd! :states 'normal :prefix "SPC" "SPC" 'lsp-ivy-workspace-symbol))
+  :commands lsp-ivy-workspace-symbol)
 
 (use-package lsp-treemacs
   :commands lsp-treemacs-errors-list
   :config
   (lsp-treemacs-sync-mode 1))
 
-(use-package apheleia
-  :config
-  (kbd! :prefix "SPC" "cf" 'apheleia-format-buffer))
+(use-package apheleia)

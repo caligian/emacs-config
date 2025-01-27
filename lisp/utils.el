@@ -176,6 +176,21 @@
   (lambda (&rest inner-args)
     (apply fn (append inner-args outer-args))))
 
+(defmacro class (name &rest attribs)
+  (declare (indent 1))
+  (cl-with-gensyms (final-form)
+	`(let* ((,final-form
+			 (cl-loop for var in ',attribs
+					  collect (if (list? var)
+								  `(,(car var)
+									:initarg ,(intern (concat ":" (symbol-name (car var))))
+									:initform ,(cadr var))
+								`(,var
+								  :initarg ,(intern (concat ":" (symbol-name var)))
+								  :initform nil))))
+			(,final-form (append@ (list 'defclass ',name nil) ,final-form)))
+	   (eval ,final-form))))
+
 (load-file "~/.emacs.d/lisp/table.el")
 (load-file "~/.emacs.d/lisp/container.el")
 (load-file "~/.emacs.d/lisp/path.el")

@@ -24,6 +24,7 @@
 ;; basic config API
 (load-file "~/.emacs.d/lisp/utils.el")
 (load-file "~/.emacs.d/lisp/globals.el")
+(load-file "~/.emacs.d/lisp/config.el")
 
 ;; load all packages
 (load-file "~/.emacs.d/packages.el")

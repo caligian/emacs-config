@@ -1,7 +1,3 @@
-(setq buffer-workspaces (ht))
-(setq workspace-buffers (ht))
-(setq buffer-workspaces (ht))
-
 (defun chomp-path (p)
   (if (equal (substr1 p -1) "/")
       (substr p 0 -1)
@@ -57,28 +53,34 @@
 
 (defun path-exists-in-subdir? (dir substrings &optional depth current-depth)
   (let* ((depth (or depth 5))
-	 (current-depth (or current-depth 1)))
-    (when (and (< current-depth depth)
-	       (not (equal dir "/")))
-      (if (not (apply #'path-exists-in-dir? dir substrings))
-	  (path-exists-in-subdir?
-	   (dirname dir)
-	   substrings
-	   depth
-	   (+ current-depth 1))
-	dir))))
+		 (current-depth (or current-depth 1)))
+	(when (and (< current-depth depth)
+			   (not (equal dir "/")))
+	  (if (not (apply #'path-exists-in-dir? dir substrings))
+		  (path-exists-in-subdir?
+		   (dirname dir)
+		   substrings
+		   depth
+		   (+ current-depth 1))
+		dir))))
 
-(cl-defun find-buffer-workspace (buf &optional substrings depth)
-  (when-let* ((found (path-exists-in-subdir? (dirname buf)
-											 (or substrings (list ".git"))
-											 (or depth 4))))
-	(%! buffer-workspaces buf found)
-	(fset% workspace-buffers found buf t)
-	found))
+(defun find-buffer-workspace (buf &optional substrings depth)
+  (if-let* ((ws (local-config-get :buffer-workspaces buf)))
+	  ws
+	(let* ((mm (buffer-major-mode buf))
+		   (mm-config (local-config-get :modes mm))
+		   (substrings (or substrings (%. mm-config 'workspace) '(".git")))
+		   (depth (or depth (%. mm-config 'workspace-check-depth) 4))
+		   (found (path-exists-in-subdir? (dirname buf) substrings depth)))
+	  (when found
+		(local-config-set :buffer-workspaces buf found)
+		(local-config-set :workspace-buffers found buf)
+		found))))
 
 (defun workspace-buffer? (ws buf)
   (when-let* ((buf (if (string? buf)
-		       (get-buffer buf)
-		     (and (buffer? buf)
-			  buf))))
-    (%. workspace-buffers ws buf)))
+					   (get-buffer buf)
+					 (and (buffer? buf) buf))))
+	(%. workspace-buffers ws buf)))
+
+(defalias 'workspace-buffer-p 'workspace-buffer?)

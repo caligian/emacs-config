@@ -1,19 +1,9 @@
-(mode-config!
- :id python-mode
- :builtin-terminal t
- :formatter "black -"
+(mode! python-mode
+  :builtin-terminal t
 
- :compile
- (buffer "ipython %path")
- (cwd "cd %path && ipython %buffer")
+  :repl
+  (use-input-file "load -y %s")
+  (command "ipython")
 
- :repl
- (buffer "ipython")
- (workspace "ipython")
- (cwd "ipython")
-
- :repl-use-input-file
- "load -y %s"
-
- :hooks
- (lsp))
+  :hooks
+  (lsp))

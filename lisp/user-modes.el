@@ -42,9 +42,9 @@
 					 (project-type (car x))
 					 (marker-files (%. x 'root-dir))
 					 (args (as-plist% (reject% x (list :name :root-dir))))
-					 (form (list project-type marker-files))
+					 (form (list 'projectile-register-project-type project-type marker-files))
 					 (args (append form args)))
-				(apply 'projectile-register-project-type args))))
+				(eval args))))
 
 (defun mode-config-define-keys (conf)
   (let* ((map (%. conf 'map))
@@ -124,8 +124,7 @@
 
 	   (when (%. ,parsed 'builtin-terminal)
 		 (add-hook ,hook 'repl-mode)
-		 ;; (repl-create-mappings)
-		 )
+		 (repl-create-mappings))
 
 	   ,parsed)))
 
