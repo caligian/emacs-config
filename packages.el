@@ -41,8 +41,8 @@
 
 (use-package popwin
   :config
-  (push "\\*messages\\*" popwin:special-display-config)
-  (push 'messages-buffer-mode popwin:special-display-config)
+  (dolist (pattern '("^\\*" messages-buffer-mode))
+	(push pattern popwin:special-display-config))
   (popwin-mode))
 
 (use-package projectile
@@ -139,15 +139,15 @@
 
 (use-package eros
   :config
-  (add-hook! emacs-lisp-mode-hook (eros-mode)))
+  (add-hook 'emacs-lisp-mode-hook 'eros-mode))
 
 (use-package org-bullets
   :config
-  (add-hook! org-mode-hook (org-bullets-mode t)))
+  (add-hook 'org-mode-hook 'org-bullets-mode))
 
 (use-package org-modern
   :config
-  (add-hook! org-mode-hook (org-modern-mode)))
+  (add-hook 'org-mode-hook 'org-modern-mode))
 
 (use-package diff-hl
   :config

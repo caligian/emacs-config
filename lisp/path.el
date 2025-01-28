@@ -1,55 +1,79 @@
+(setq path-lookup-alist '((HOME . (getenv "HOME"))
+						  (ROOT . "/")
+						  (config "~/.emacs.d/")
+						  (state "~/.local/state")
+						  (xdg-config "~/.config")
+						  (bashrc "~/.bashrc")
+						  (zshrc "~/.zshrc")
+						  (shell "/usr/bin/zsh")))
+
+(defun whereis (prog)
+  (executable-find prog))
+
+(cl-defun shell-command! (cmd &optional (as-list t))
+  (let* ((out (shell-command-to-string cmd))
+		 (out (if as-list
+				  (string-split out "\n")
+				out))
+		 (out (if (list? out)
+				  (cl-loop for x in out
+						   when (not (= (length x) 0))
+						   collect x)
+				out)))
+	out))
+
 (defun chomp-path (p)
-  (if (equal (substr1 p -1) "/")
-      (substr p 0 -1)
-    p))
+  (if (equal (substr p -1) "/")
+	  (substr p 0 -1)
+	p))
 
 (defun join-path (&rest ps)
   (string-join ps "/"))
 
 (defun dirname (s)
   (let* ((s (if (bufferp s) (buffer-file-name s) s)))
-    (chomp-path (if (equal "/" (substr1 s -1))
-		    (file-name-directory (substr s 0 -1))
-		  (file-name-directory s)))))
+	(chomp-path (if (equal "/" (substr s -1))
+					(file-name-directory (substr s 0 -1))
+				  (file-name-directory s)))))
 
 (defun basename (x)
   (concat (file-name-base x) "." (file-name-extension x)))
 
 (defun list-files (dir &optional fullpath)
   (let* ((namelen (length dir))
-	 (lastchar (substr1 dir (- namelen 1)))
-	 (dir (if (and (equal lastchar "/") (> namelen 1))
-		  (substr dir 0 -1)
-		dir)))
+		 (lastchar (substr dir (- namelen 1)))
+		 (dir (if (and (equal lastchar "/") (> namelen 1))
+				  (substr dir 0 -1)
+				dir)))
     (--map
      (if fullpath
-	 (if (equal dir "/")
-	     (concat dir it)
-	   (concat dir "/" it))
+		 (if (equal dir "/")
+			 (concat dir it)
+		   (concat dir "/" it))
        it)
      (--filter (unless (or (equal it ".")
-			   (equal it ".."))
-		 it)
-	       (directory-files dir)))))
+						   (equal it ".."))
+				 it)
+			   (directory-files dir)))))
 
 (defun list-emacs-lisp-files (dir &optional fullpath)
   (thread-first (list-files dir fullpath)
-		(filter@ (lambda (x)
-			   (let* ((x (basename x)))
-			     (and (=~ x "el$")
-				  (not=~ x "^[%#~.]" "[%#~.]$")))))))
+				(filter@ (lambda (x)
+						   (let* ((x (basename x)))
+							 (and (=~ x "el$")
+								  (!~ x "^[%#~.]" "[%#~.]$")))))))
 
 
 (defun path-exists-in-dir? (dir &rest substrings)
   (cl-labels ((exists? (r fs)
-		(if-let* ((f (car fs)))
-		    (if (cl-search r f)
-			t
-		      (exists? r (cdr fs))))))
+				(if-let* ((f (car fs)))
+					(if (cl-search r f)
+						t
+					  (exists? r (cdr fs))))))
     (if-let* ((r (car substrings)))
-	(if (exists? r (if (listp dir) dir (list-files dir t)))
-	    dir
-	  (apply #'path-exists-in-dir? dir (cdr substrings))))))
+		(if (exists? r (if (listp dir) dir (list-files dir t)))
+			dir
+		  (apply #'path-exists-in-dir? dir (cdr substrings))))))
 
 (defun path-exists-in-subdir? (dir substrings &optional depth current-depth)
   (let* ((depth (or depth 5))
@@ -84,3 +108,24 @@
 	(%. workspace-buffers ws buf)))
 
 (defalias 'workspace-buffer-p 'workspace-buffer?)
+
+(defmacro path* (&rest words)
+  `(replace-regexp-in-string
+	"/+" "/" (string-join
+			  (cl-loop for word in ',words
+					   collect (if-let* ((expansion (%. ',path-lookup-alist word)))
+								   (if (list? expansion)
+									   (eval expansion)
+									 expansion)
+								 (cond
+								  ((list? word)
+								   (eval word))
+								  ((and (symbol? word)
+										(=~ (symbol-name word) "^[A-Z-]+"))
+								   (getenv (symbol-name word)))
+								  ((string? word)
+								   word))))
+			  "/")))
+
+(defmacro path! (words)
+  `(path* ,@words))

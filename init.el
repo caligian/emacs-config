@@ -1,6 +1,19 @@
-(setq-default lexical-binding t)
+(defun turn-on-lexical-binding ()
+  (setq-local lexical-binding t)) 
 
+(add-hook 'emacs-lisp-mode-hook 'turn-on-lexical-binding) 
+
+;; in case if something fucks up
+(menu-bar-mode -1)
+(scroll-bar-mode -1)
+(tool-bar-mode -1)
+(global-display-line-numbers-mode)
+(set-frame-font "Liberation Mono 12" nil t)
+(set-language-environment "utf-8")
+
+(straight-use-package 'projectile)
 (straight-use-package 'evil)
+(straight-use-package 'ivy)
 (straight-use-package 's)
 (straight-use-package 'dash)
 (straight-use-package 'ht)
@@ -10,6 +23,7 @@
 (straight-use-package 'smartparens)
 
 ;; when popwin does not help with evil-mode
+(require 'ivy)
 (require 'evil)
 (require 'general)
 (require 'eieio)
@@ -19,36 +33,24 @@
 (require 'ht)
 (require 'smartparens-config)
 
-(evil-mode 1)
-
 ;; basic config API
-(load-file "~/.emacs.d/lisp/utils.el")
-(load-file "~/.emacs.d/lisp/globals.el")
+(load-file "~/.emacs.d/lisp/utils.el") 
+(load-file "~/.emacs.d/lisp/table.el") 
+(load-file "~/.emacs.d/lisp/container.el") 
+(load-file "~/.emacs.d/lisp/string.el") 
+(load-file "~/.emacs.d/lisp/ivy.el") 
+(load-file "~/.emacs.d/lisp/globals.el") 
 (load-file "~/.emacs.d/lisp/config.el")
-
-;; load all packages
-(load-file "~/.emacs.d/packages.el")
-
-;; load rest of the api
 (load-file "~/.emacs.d/lisp/buffer.el")
+(load-file "~/.emacs.d/lisp/path.el") 
 (load-file "~/.emacs.d/lisp/modes.el")
 (load-file "~/.emacs.d/lisp/repl.el")
-(load-file "~/.emacs.d/lisp/compiler.el")
-(load-file "~/.emacs.d/lisp/async-process.el")
-(load-file "~/.emacs.d/lisp/async-formatter.el")
 (load-file "~/.emacs.d/lisp/R.el")
-(load-file "~/.emacs.d/config/mappings.el")
-(load-file "~/.emacs.d/config/hooks.el")
+(load-file "~/.emacs.d/packages.el")
 
-;; continue setup
-(mode-config-load-directory)
-(menu-bar-mode -1)
-(scroll-bar-mode -1)
-(tool-bar-mode -1)
-(global-display-line-numbers-mode)
-(set-frame-font "Liberation Mono 12" nil t)
-(set-language-environment "utf-8")
-(set-frame-parameter nil 'alpha-background 100)
+;; ;; continue setup
+;; (mode-config-load-directory)
+(set-frame-parameter nil 'alpha-background 95)
 (pixel-scroll-precision-mode t)
 (global-auto-revert-mode 1)
 (auto-insert-mode 1)
@@ -58,10 +60,9 @@
 (evil-mode t)
 (winner-mode t)
 (smartparens-global-mode)
-(local-config-load-hooks)
-(local-config-load-mappings)
+(local-config-load-files)
 (local-config-setup-temp-buffers)
-
+ 
 ;; misc stuff
 (add-hook 'find-file-hook 'auto-insert)
-(add-to-list 'default-frame-alist '(alpha-background . 100))
+(add-to-list 'default-frame-alist '(alpha-background . 97))

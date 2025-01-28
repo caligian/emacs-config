@@ -162,3 +162,133 @@
 		(end-of-line)
 		(deactivate-mark)
 		(buffer-get-region buf)))))
+
+(defun buffer-lines-make-writeable (buf start end)
+  (with-current-buffer buf
+	(goto-line start)
+	(beginning-of-line)
+	(set-mark (point))
+	(goto-line end)
+	(end-of-line)
+	(deactivate-mark)
+	(let ((inhibit-read-only t))
+	  (put-text-property (mark) (point) 'read-only nil))))
+
+(defun buffer-lines-make-read-only (buf start end)
+  (with-current-buffer buf
+	(goto-line start)
+	(beginning-of-line)
+	(set-mark (point))
+	(goto-line end)
+	(end-of-line)
+	(deactivate-mark)
+	(let ((inhibit-read-only t))
+	  (put-text-property (mark) (point) 'read-only t))))
+
+(defun buffer-lines-make-writeable (buf start end)
+  (with-current-buffer buf
+	(let ((inhibit-read-only t))
+	  (put-text-property start end 'read-only nil))))
+
+
+(defun buffer-region-make-read-only (buf start end)
+  (with-current-buffer buf
+	(let ((inhibit-read-only t))
+	  (put-text-property start end 'read-only t))))
+
+(defun buffer-region-make-writeable (buf start end)
+  (with-current-buffer buf
+	(let ((inhibit-read-only t))
+	  (put-text-property start end 'read-only nil))))
+
+(defun buffer-hide (buf)
+  (interactive)
+  (with-current-buffer buf (delete-window)))
+
+(defun buffer-kill (buf)
+  (kill-buffer buf))
+
+(defun buffer-kill1 (&optional buf)
+  (interactive)
+  (kill-buffer (or buf (current-buffer)))
+  (delete-window))
+
+(cl-defun make-temp-buffer (&key
+							(prefix "*temp-buffer-")
+							(contents nil)
+							(read-only nil)
+							(split nil)
+							(on-input nil)
+							(on-enter nil))
+  (when (and read-only on-input)
+	(error "cannot pass both :read-only and :on-input"))
+
+  (let* ((buf (get-buffer-create (make-temp-name prefix)))
+		 (contents-list (if (string? contents)
+							(string-split contents "\n")
+						  contents))
+		 (contents (cond
+					((string? contents)
+					 contents)
+					((list? contents)
+					 (string-join contents "\n"))))
+		 (contents-len (when contents-list (length contents-list)))
+		 (on-input (when on-input
+					 (lambda nil
+					   (interactive)
+					   (let* ((buf (current-buffer))
+							  (text (with-current-buffer buf (buffer-string)))
+							  (lines (string-split text "\n")))
+						 (funcall on-input
+								  (list
+								   :lines (cl-loop
+										   for line in (nthcdr contents-len lines)
+										   when (> (length line) 0)
+										   collect line)
+								   :buffer buf))
+						 (buffer-kill1 buf))))))
+	(with-current-buffer (current-buffer)
+	  (when contents
+		(with-current-buffer buf
+		  (insert contents)
+		  (when on-input
+			(let* ((curpoint (point-max)))
+			  (insert "\n")
+			  (buffer-region-make-read-only buf (point-min) curpoint)))))
+
+	  (when read-only
+		(with-current-buffer buf
+		  (read-only-mode)))
+
+	  (when split
+		(with-current-buffer buf
+		  (setq-local lexical-binding t)
+
+		  (when on-enter
+			(funcall on-enter buf))
+
+		  (when on-input
+			(general-define-key
+			 :keymaps 'override
+			 :states '(normal)
+			 "<return>" on-input)
+			(local-set-key (kbd "C-c C-c") on-input))
+
+		  (general-define-key
+		   :keymaps 'override
+		   :states '(normal visual)
+		   "q" 'buffer-kill1)
+
+		  (local-set-key (kbd "C-g") 'buffer-kill1)
+
+		  (cond
+		   ((or (eq split :right) (eq split :below))
+			(if (eq split :right)
+				(split-window-right)
+			  (split-window-below))
+			(other-window 1)
+			(switch-to-buffer buf))
+		   ((eq split :frame)
+			(switch-to-buffer-other-frame buf))
+		   ((eq split :window)
+			(switch-to-buffer-other-window))))))))

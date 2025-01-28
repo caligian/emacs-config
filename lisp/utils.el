@@ -124,26 +124,6 @@
 (defalias 'object? 'eieio-object-p)
 (defalias 'process-live? 'process-live-p)
 
-(defmacro add-mode-hook! (hook &rest body)
-  (declare (indent 1))
-  (let* ((-hook-name (gensym))
-	 (form (gensym)))
-    `(progn
-       (let* ((,-hook-name (symbol-name ',hook))
-	      (,-hook-name (concat ,-hook-name "-mode-hook"))
-	      (,-hook-name (intern ,-hook-name))))
-       (add-hook ,-hook-name (lambda nil ,@body)))))
-
-(defmacro add-hook! (hook &rest body)
-  (declare (indent 1))
-  `(add-hook ',hook (lambda nil ,@body)))
-
-(defmacro add-hooks! (&rest forms)
-  `(cl-loop for f in ',forms
-	    do (eval (append (list 'add-hook!)
-			     (list (car f))
-			     (cdr f)))))
-
 (defmacro assert (form msg &optional success)
   `(if (not ,form)
        (if (list? ',msg)
@@ -169,12 +149,12 @@
   `(let-lambda ,args ,@forms))
 
 (defun partial-apply (fn &rest outer-args)
-  (lambda (&rest inner-args)
-    (apply fn (append outer-args inner-args))))
+  (eval `(lambda (&rest inner-args)
+		   (apply ',fn (append ',outer-args inner-args))))) 
 
 (defun rpartial-apply (fn &rest outer-args)
-  (lambda (&rest inner-args)
-    (apply fn (append inner-args outer-args))))
+  (eval `(lambda (&rest inner-args)
+		   (apply ',fn (append inner-args ',outer-args)))))
 
 (defmacro class (name &rest attribs)
   (declare (indent 1))
@@ -191,7 +171,13 @@
 			(,final-form (append@ (list 'defclass ',name nil) ,final-form)))
 	   (eval ,final-form))))
 
-(load-file "~/.emacs.d/lisp/table.el")
-(load-file "~/.emacs.d/lisp/container.el")
-(load-file "~/.emacs.d/lisp/path.el")
-(load-file "~/.emacs.d/lisp/string.el")
+(defun expression (form exp)
+  (cl-loop for x in form
+		   collect (if (list? x)
+					   (expression x exp)
+					 (if-let* ((expansion (%. exp x)))
+						 expansion
+					   x))))
+
+(defmacro substitute (form exp)
+  `(expression ',form ',exp)) 

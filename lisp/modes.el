@@ -1,21 +1,25 @@
 (require 'projectile)
 
+;; compile definition
+;;  valid words: command cmd path filepath workspace dir home
+;;  is a list in the form
+;;  (SYMBOL|STRING . EXPRESSION) where words above will be substituted
+
 ;; repl definition
 ;;	help
-;;  
 ;;  input-filter
 
-;; formatter definition 
-;; FORM: (name args) where args is a a form or string
+;; format definition 
+;; FORM: (SYMBOL EXPRESSION) where args is a a form or string
 
 ;; project definition:
-;; FORM: (name ...rest)
-;;	name
-;;	root-dir
-;;	project-file
+;; FORM: (SYMBOL ...rest)
+;;	name STRING
+;;	root-dir (list STRING)
+;;	project-file 
 ;;	compilation-dir
 ;;	local-configure
-;;	compile
+;;	compile  
 ;;	test
 ;;	install
 ;;	package
@@ -30,11 +34,61 @@
   mode
   (workspace (list ".git"))
   (workspace-check-depth 4)
-  compile-buffer
-  project formatter
+  compile
+  project format
   builtin-terminal
   hooks mappings hook map
   repl)
+
+(mode! python-mode
+  :workspace '(".my-marker-file")
+  :workspace-check-depth 2
+  :builtin-terminal t
+
+  :compile
+  (run ("cat" filepath))
+  (test ("pytest" filepath))
+  (format ("black" filepath))
+
+  :format
+  (white ("black" filepath)))
+
+(defun mode-config--substitute (exp buf)
+  (let* ((fname (buffer-file-name buf))
+		 (dir (dirname buf))
+		 (ws (find-buffer-workspace buf))
+		 (defaults `((home			,(getenv "HOME"))
+					 (filepath		,fname)
+					 (path			,fname)
+					 (cwd			,dir)
+					 (currentdir	,dir)
+					 (dir			,dir)
+					 (root			,ws)
+					 (workspace		,ws)))
+		 (exp (append '(list) exp)))
+	(eval (expression exp defaults))))
+
+;; fix async process
+(defun mode-config-compile (conf &optional buf)
+  (with-slots (compile) conf
+	(let* ((buf (or buf (current-buffer)))
+		   (commands (cl-loop for cmd in compile
+							  collect (let* ((k (car cmd))
+											 (v (cadr cmd)))
+										`(,k (:value v)))))
+		   (action (lambda (selection)
+					 (let* ((value (plist-get selection :value))
+							(value (if (list? value)
+									   (mode-config--substitute value buf)
+									 value)))
+					   (with-shell-output! value
+						 (make-temp-buffer :prefix "*compile-"
+										   :split :below
+										   :contents output
+										   :read-only t)))))
+		   (prompt (format "Compile %s" (buffer-file-name buf))))
+	  (%ivy commands action :prompt prompt))))
+
 
 (defun mode-config-add-projects (conf)
   (cl-loop for x in (%. conf 'project)
@@ -56,16 +110,33 @@
 				  (apply 'general-define-key args)))))
 
 (defun mode-config-add-hooks (conf)
-  (funcall 'add-hook
-		   (%. conf 'hook)
-		   (eval (append (list 'lambda nil) (%. conf 'hooks)))))
+  (let* ((m (%. conf 'mode))
+		 (hook (%. conf 'hook))
+		 (hooks (%. conf 'hooks))
+		 (fn-name (concat "mode-config-" (symbol-name) "-hook-function"))
+		 (fn-name (intern fn-name))
+		 (fn (append `(defun ,fn-name ()) hooks)))
+	(eval fn)
+	(add-hook hook fn-name)))
 
 (defun mode-config-add-formatters (conf)
-  (cl-loop for x in (%. conf 'formatter)
-		   do (let* ((defined (%. apheleia-mode-alist (%. conf mode)))
+  (cl-loop for x in (%. conf 'format)
+		   do (let* ((defined (%. apheleia-mode-alist (%. conf 'mode)))
 					 (name (add-to-list defined (car x)))
 					 (args (cdr x)))
-				(push (list name args) apheleia-formatters))))
+				(push `(name args) apheleia-formatters))))
+
+
+(defun mode-config-add-formatters (conf)
+  (cl-loop for x in (%. conf 'format)
+		   do (let* ((mode (%. conf 'mode))
+					 (defined (->list (%. apheleia-mode-alist 'mode)))
+					 (name (car x))
+					 (args (cdr x)))
+				(cl-pushnew name defined)
+				(setf (alist-get mode apheleia-mode-alist) defined)
+				(cl-pushnew `(,name . ,args) apheleia-formatters))))
+
 
 (defun mode-config-list-modes (&optional fullpath)
   (if fullpath
@@ -123,10 +194,12 @@
 	   (local-config-set :modes ',m ,parsed)
 
 	   (when (%. ,parsed 'builtin-terminal)
-		 (add-hook ,hook 'repl-mode)
-		 ;; (repl-create-mappings)
-		 )
+		 (add-hook ,hook 'repl-mode))
 
 	   ,parsed)))
 
 (mode! sh-mode)
+
+(mode! emacs-lisp-mode
+  :repl
+  (shell "zsh"))

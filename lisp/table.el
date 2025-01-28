@@ -24,6 +24,8 @@
 (defun not-empty? (x &optional len-fn)
   (not (funcall 'empty? x len-fn)))
 
+(defalias '!empty? 'not-empty?)
+
 (defun -get% (h ks)
   (let* ((k (car ks))
 	 (others (cdr ks)))

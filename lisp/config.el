@@ -42,5 +42,9 @@
   (cl-loop for regex in (%. local-config :temp-buffer-patterns)
 		   do (push (list regex :regexp t) popwin:special-display-config)))
 
+(defun local-config-load-files ()
+  (cl-loop for file in (list-emacs-lisp-files "~/.emacs.d/config" t)
+		   do (load-file file)))
+
 (defalias 'define-key! 'local-config-define-key)
 (defalias 'add-hook! 'local-config-add-hook)
