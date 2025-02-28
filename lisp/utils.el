@@ -52,10 +52,10 @@
 
 (defmacro parse-arguments! (&rest args)
   (let* ((parsed (ht))
-	 (pos-args '())
-	 (args-len (length args))
-	 (start-keyword-index (gensym))
-	 (last-symbol (gensym)))
+		 (pos-args '())
+		 (args-len (length args))
+		 (start-keyword-index (gensym))
+		 (last-symbol (gensym)))
     `(progn
        (setq ,start-keyword-index
 	     (cl-loop for x from 0 below ,args-len
@@ -73,6 +73,12 @@
 			  (fset% ,parsed v '()))
 			 (,last-symbol
 			  (append% ,parsed ,last-symbol v)))))
+	   (cl-loop for k in (keys% ,parsed)
+				do (let* ((v (%. ,parsed k)))
+					 (when (and (list? v)
+								(= 1 (length v))
+								(not (alist? v)))
+					   (set% ,parsed k (car v)))))
        (list ,pos-args ,parsed))))
 
 (defun parse-arguments (&rest args)
@@ -149,15 +155,15 @@
   `(let-lambda ,args ,@forms))
 
 (defun partial-apply (fn &rest outer-args)
-  (eval `(lambda (&rest inner-args)
-		   (apply ',fn (append ',outer-args inner-args))))) 
+  (lambda (&rest inner-args)
+	(apply fn (append outer-args inner-args))))
 
 (defun rpartial-apply (fn &rest outer-args)
-  (eval `(lambda (&rest inner-args)
-		   (apply ',fn (append inner-args ',outer-args)))))
+  (lambda (&rest inner-args)
+	(apply fn (append inner-args outer-args))))
 
-(defmacro class (name &rest attribs)
-  (declare (indent 1))
+(defmacro class (name parents &rest attribs)
+  (declare (indent 2))
   (cl-with-gensyms (final-form)
 	`(let* ((,final-form
 			 (cl-loop for var in ',attribs
@@ -168,7 +174,7 @@
 								`(,var
 								  :initarg ,(intern (concat ":" (symbol-name var)))
 								  :initform nil))))
-			(,final-form (append@ (list 'defclass ',name nil) ,final-form)))
+			(,final-form (append@ (list 'defclass ',name ',parents) ,final-form)))
 	   (eval ,final-form))))
 
 (defun expression (form exp)

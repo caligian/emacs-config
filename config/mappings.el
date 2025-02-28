@@ -87,11 +87,13 @@
 
 (define-key! toggle-evil-mode nil
   (normal
-   "C-SPC" (lambda nil
-			 (interactive)
-			 (if (not evil-local-mode)
-				 (turn-on-evil-mode)
-			   (turn-off-evil-mode)))))
+   "C-\\" (defun toggle-evil-local-mode ()
+			(interactive)
+			(if (not evil-local-mode)
+				(turn-on-evil-mode)
+			  (turn-off-evil-mode)))))
+
+(global-set-key (kbd "C-\\") 'toggle-evil-local-mode)
 
 (define-key! completion-and-misc nil
   ((normal visual)
@@ -144,3 +146,7 @@
    "`b" 'treemacs-bookmark
    "`f" 'treemacs-find-file
    "`t" 'treemacs-find-tag))
+
+(define-key! swiper ()
+  ((normal visual)
+   "C-s" 'swiper))

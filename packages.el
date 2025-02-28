@@ -49,19 +49,11 @@
   :config
   (projectile-mode +1))
 
-(use-package counsel-projectile
-  :config
-  (counsel-projectile-mode))
-
 (use-package kaolin-themes)
 
-(use-package ivy
-  :config
-  (ivy-mode t))
+(use-package ivy)
 
-(use-package counsel
-  :config
-  (counsel-mode 1))
+(use-package counsel)
 
 (use-package company-box
   :hook (company-mode . company-box-mode))
@@ -72,6 +64,12 @@
   :config
   (global-company-mode t))
 
+(use-package mood-line
+  :config
+  (mood-line-mode)
+  :custom
+  (mood-line-glyph-alist mood-line-glyphs-fira-code))
+
 (use-package ess)
 
 (use-package yasnippet-snippets)
@@ -79,10 +77,6 @@
 (use-package yasnippet
   :config
   (yas-global-mode t))
-
-(use-package doom-modeline
-  :ensure t
-  :init (doom-modeline-mode 1))
 
 (use-package ligature
   :config
@@ -137,10 +131,6 @@
   :config
   (highlight-defined-mode))
 
-(use-package eros
-  :config
-  (add-hook 'emacs-lisp-mode-hook 'eros-mode))
-
 (use-package org-bullets
   :config
   (add-hook 'org-mode-hook 'org-bullets-mode))
@@ -153,10 +143,11 @@
   :config
   (global-diff-hl-mode))
 
-
 (use-package rg
   :config
-  (kbd! :states 'normal "SPC ?" 'rg-menu))
+  (define-key! ripgrep (:prefix "SPC")
+	(normal
+	 "?" 'rg-menu)))
 
 (use-package magit)
 
@@ -179,15 +170,6 @@
 (use-package move-text
   :config
   (move-text-default-bindings))
-
-;; (use-package flycheck
-;;   :ensure t
-;;   :config
-;;   (add-hook 'after-init-hook #'global-flycheck-mode))
-
-;; (use-package gruvbox-theme
-;;   :config
-;;   (load-theme 'gruvbox-dark-medium t))
 
 (use-package ace-window
   :config
@@ -218,6 +200,8 @@
        (=~ name "[*]temp")
        (=~ name "[*]Help")
        (=~ name "[*]mybuf")
+	   (=~ name "[*]temp-buffer")
+	   (=~ name "temp-buffer")
        (=~ name "^async-process")
        (=~ name "^async-formatter")
        (=~ name "[*]ansi")
@@ -232,10 +216,6 @@
 
   (define-key evil-normal-state-map (kbd "g t") 'centaur-tabs-forward)
   (define-key evil-normal-state-map (kbd "g T") 'centaur-tabs-backward))
-
-(use-package solarized-theme
-  :config
-  (load-theme 'solarized-dark-high-contrast t))
 
 (straight-use-package '(evil-ts :type git :host github :repo "foxfriday/evil-ts"))
 
@@ -288,16 +268,23 @@
   (which-key-mode 1))
 
 (use-package lsp-mode
-  :hook ((lsp-mode . lsp-enable-which-key-integration))
+  :init
+  (setq lsp-enable-links nil)
+
+  :hook ((lsp-mode . lsp-enable-which-key-integration)
+		 (python-mode . lsp))
+
+  :custom 
+  (lsp-headerline-breadcrumb-enable nil)
+  (lsp-headerline-breadcrumb-enable-diagnostics nil)
+  (lsp-headerline-breadcrumb-enable-symbol-numbers nil)
+  (lsp-headerline-breadcrumb-icons-enable nil)
+
   :config
-  (evil-define-key 'normal lsp-mode-map (kbd "SPC l") lsp-command-map)
-  :commands lsp)
+  (evil-define-key 'normal lsp-mode-map (kbd "SPC l") lsp-command-map))
 
 (use-package lsp-ui
   :commands lsp-ui-mode)
-
-(use-package lsp-ivy
-  :commands lsp-ivy-workspace-symbol)
 
 (use-package lsp-treemacs
   :commands lsp-treemacs-errors-list
@@ -305,3 +292,171 @@
   (lsp-treemacs-sync-mode 1))
 
 (use-package apheleia)
+
+(use-package lsp-jedi
+  :ensure t)
+
+(use-package ultra-scroll
+  :straight
+  (ultra-scroll :type git :host github :repo "jdtsmith/ultra-scroll")
+
+  :init
+  (setq scroll-conservatively 101
+		scroll-margin 0)
+  :config
+  (ultra-scroll-mode 1))
+
+;; Enable vertico
+(use-package vertico
+  :config
+  (vertico-mode)
+  (keymap-set vertico-map "?" #'minibuffer-completion-help)
+  (keymap-set vertico-map "M-RET" #'minibuffer-force-complete-and-exit)
+  (keymap-set vertico-map "M-TAB" #'minibuffer-complete))
+
+(use-package savehist
+  :init
+  (savehist-mode))
+
+(use-package emacs
+  :custom
+  (setq scroll-preserve-screen-position t)
+  (enable-recursive-minibuffers t)
+  (read-extended-command-predicate #'command-completion-default-include-p)
+  (minibuffer-prompt-properties
+   '(read-only t cursor-intangible t face minibuffer-prompt))
+
+  :init
+  (when (< emacs-major-version 31)
+    (advice-add #'completing-read-multiple :filter-args
+                (lambda (args)
+                  (cons (format "[CRM%s] %s"
+                                (string-replace "[ \t]*" "" crm-separator)
+                                (car args))
+                        (cdr args))))))
+
+(use-package marginalia
+  :bind (:map minibuffer-local-map
+			  ("M-A" . marginalia-cycle))
+  :init
+  (marginalia-mode))
+
+(use-package orderless
+  :custom
+  (completion-styles '(orderless basic))
+  (completion-category-defaults nil)
+  (completion-category-overrides '((file (styles partial-completion)))))
+
+(use-package marginalia
+  :ensure t
+  :config
+  (marginalia-mode))
+
+(use-package embark
+  :ensure t
+  :bind
+  (("C-." . embark-act)         
+   ("C-;" . embark-dwim)        
+   ("C-h B" . embark-bindings)) 
+
+  :init
+  (setq prefix-help-command #'embark-prefix-help-command)
+
+  :config
+  (add-to-list 'display-buffer-alist
+               '("\\`\\*Embark Collect \\(Live\\|Completions\\)\\*"
+                 nil
+                 (window-parameters (mode-line-format . none)))))
+
+(use-package embark-consult
+  :ensure t
+  :hook
+  (embark-collect-mode . consult-preview-at-point-mode))
+
+(use-package consult
+  :bind (("M-X" . consult-mode-command)
+         ("C-c h" . consult-history)
+         ("C-c k" . consult-kmacro)
+         ("C-c m" . consult-man)
+         ("C-c i" . consult-info)
+         ([remap Info-search] . consult-info)
+         ("C-x M-:" . consult-complex-command)     ;; orig. repeat-complex-command
+         ("C-x b" . consult-buffer)                ;; orig. switch-to-buffer
+         ("C-x 4 b" . consult-buffer-other-window) ;; orig. switch-to-buffer-other-window
+         ("C-x 5 b" . consult-buffer-other-frame)  ;; orig. switch-to-buffer-other-frame
+         ("C-x t b" . consult-buffer-other-tab)    ;; orig. switch-to-buffer-other-tab
+         ("C-x r b" . consult-bookmark)            ;; orig. bookmark-jump
+         ("C-x p b" . consult-project-buffer)      ;; orig. project-switch-to-buffer
+         ("M-#" . consult-register-load)
+         ("M-'" . consult-register-store)          ;; orig. abbrev-prefix-mark (unrelated)
+         ("C-M-#" . consult-register)
+         ("M-y" . consult-yank-pop)                ;; orig. yank-pop
+         ("M-g e" . consult-compile-error)
+         ("M-g f" . consult-flymake)               ;; Alternative: consult-flycheck
+         ("M-g g" . consult-goto-line)             ;; orig. goto-line
+         ("M-g M-g" . consult-goto-line)           ;; orig. goto-line
+         ("M-g o" . consult-outline)               ;; Alternative: consult-org-heading
+         ("M-g m" . consult-mark)
+         ("M-g k" . consult-global-mark)
+         ("M-g i" . consult-imenu)
+         ("M-g I" . consult-imenu-multi)
+         ("M-s d" . consult-find)                  ;; Alternative: consult-fd
+         ("M-s c" . consult-locate)
+         ("M-s g" . consult-grep)
+         ("M-s G" . consult-git-grep)
+         ("M-s /" . consult-ripgrep)
+         ("M-s l" . consult-line)
+         ("M-s L" . consult-line-multi)
+         ("M-s k" . consult-keep-lines)
+         ("M-s u" . consult-focus-lines)
+         ("M-s e" . consult-isearch-history)
+
+         :map isearch-mode-map
+         ("M-e" . consult-isearch-history)         ;; orig. isearch-edit-string
+         ("M-s e" . consult-isearch-history)       ;; orig. isearch-edit-string
+         ("M-s l" . consult-line)                  ;; needed by consult-line to detect isearch
+         ("M-s L" . consult-line-multi)            ;; needed by consult-line to detect isearch
+
+         :map minibuffer-local-map
+         ("M-s" . consult-history)                 ;; orig. next-matching-history-element
+         ("M-r" . consult-history))                ;; orig. previous-matching-history-element
+
+
+  :hook (completion-list-mode . consult-preview-at-point-mode)
+
+  :init
+  (advice-add #'register-preview :override #'consult-register-window)
+  (setq register-preview-delay 0.5)
+  (setq xref-show-xrefs-function #'consult-xref
+        xref-show-definitions-function #'consult-xref)
+
+  :config
+  (consult-customize
+   consult-theme :preview-key '(:debounce 0.2 any)
+   consult-ripgrep consult-git-grep consult-grep consult-man
+   consult-bookmark consult-recent-file consult-xref
+   consult--source-bookmark consult--source-file-register
+   consult--source-recent-file consult--source-project-recent-file
+   :preview-key '(:debounce 0.4 any))
+
+  (setq consult-narrow-key "<"))
+
+(use-package dumb-jump
+  :config
+  (add-hook 'xref-backend-functions #'dumb-jump-xref-activate)
+  (setq xref-show-definitions-function #'xref-show-definitions-completing-read))
+
+(use-package auto-virtualenv
+  :config
+  (setq auto-virtualenv-verbose t)
+  (auto-virtualenv-setup))
+
+(use-package beacon
+  :config
+  (beacon-mode 1))
+
+;; use-package with package.el:
+(use-package dashboard
+  :ensure t
+  :config
+  (dashboard-setup-startup-hook))

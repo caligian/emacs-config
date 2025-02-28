@@ -1,6 +1,6 @@
 (setq user-async-processes (ht))
 
-(class async-process
+(class async-process ()
   name
   shell
   command
@@ -149,26 +149,4 @@
 	   :name (make-temp-name "*")
 	   :on-success (lambda (proc)
 					 (with-slots (stdout) proc
-					   (funcall ,on-success stdout)))))))
-
-;; (with-shell-output! ("ls" "-l")
-;;   (make-temp-buffer :prefix "*async-process-"
-;; 					:split :below
-;; 					:contents output
-;; 					:read-only t))
-
-;; (with-shell-output! ("ls" "-l")
-;;   (message "%s" output))
-
-;; (defmacro with-async-command-output (cmd &rest body)
-;;   `(let* ((proc (async-process-start
-;; 				 (async-process! :name (make-temp-name "async-process-")
-;; 								 :command ',cmd)))
-;; 		  )))
-
-;; (setq a-proc
-;;       (async-process-init
-;;        :name "test process"
-;;        :command (list "ls" "-l" "/home/skeletorz" )
-;; 	   :on-failure (lambda (_) (message "job failed"))
-;;        :on-success (lambda (_) (message "job succeeded"))))
+					   ,@body))))))

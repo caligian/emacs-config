@@ -1,16 +1,16 @@
+(setq-default lexical-binding t)
+
 (defun turn-on-lexical-binding ()
   (setq-local lexical-binding t)) 
 
+(turn-on-lexical-binding)
 (add-hook 'emacs-lisp-mode-hook 'turn-on-lexical-binding) 
 
 ;; in case if something fucks up
-(menu-bar-mode -1)
-(scroll-bar-mode -1)
-(tool-bar-mode -1)
 (global-display-line-numbers-mode)
-(set-frame-font "Liberation Mono 12" nil t)
+(add-to-list 'default-frame-alist
+			 '(font . "FiraCode Nerd Font Propo 12"))
 (set-language-environment "utf-8")
-
 (straight-use-package 'projectile)
 (straight-use-package 'evil)
 (straight-use-package 'ivy)
@@ -21,6 +21,7 @@
 (straight-use-package 'ts)
 (straight-use-package 'general)
 (straight-use-package 'smartparens)
+(straight-use-package 'apheleia)
 
 ;; when popwin does not help with evil-mode
 (require 'ivy)
@@ -39,18 +40,20 @@
 (load-file "~/.emacs.d/lisp/container.el") 
 (load-file "~/.emacs.d/lisp/string.el") 
 (load-file "~/.emacs.d/lisp/ivy.el") 
-(load-file "~/.emacs.d/lisp/globals.el") 
+(load-file "~/.emacs.d/globals.el") 
 (load-file "~/.emacs.d/lisp/config.el")
+(load-file "~/.emacs.d/packages.el")
 (load-file "~/.emacs.d/lisp/buffer.el")
 (load-file "~/.emacs.d/lisp/path.el") 
 (load-file "~/.emacs.d/lisp/modes.el")
+(load-file "~/.emacs.d/lisp/terminal-process.el")
 (load-file "~/.emacs.d/lisp/repl.el")
 (load-file "~/.emacs.d/lisp/R.el")
-(load-file "~/.emacs.d/packages.el")
+(load-file "~/.emacs.d/lisp/python.el")
 
 ;; ;; continue setup
-;; (mode-config-load-directory)
-(set-frame-parameter nil 'alpha-background 95)
+(mode-config-load-directory)
+(set-frame-parameter nil 'alpha-background 100)
 (pixel-scroll-precision-mode t)
 (global-auto-revert-mode 1)
 (auto-insert-mode 1)
@@ -62,7 +65,11 @@
 (smartparens-global-mode)
 (local-config-load-files)
 (local-config-setup-temp-buffers)
+(load-theme 'kaolin-bubblegum t)
  
 ;; misc stuff
 (add-hook 'find-file-hook 'auto-insert)
-(add-to-list 'default-frame-alist '(alpha-background . 97))
+(add-to-list 'default-frame-alist '(alpha-background . 100))
+(menu-bar-mode -1)
+(scroll-bar-mode -1)
+(tool-bar-mode -1)

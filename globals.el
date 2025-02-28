@@ -43,7 +43,8 @@
 			  tab-stop-list nil)
 
 (setq auto-insert-directory "~/.emacs.d/templates"
-	  auto-insert-alist '((ess-r-mode . "template.R")))
+	  auto-insert-alist '((ess-r-mode . "template.R")
+						  ("ppt-.*org$" . "ppt.org")))
 
 (setq indent-tabs-mode nil)
 
@@ -60,9 +61,9 @@
 	  lsp-modeline-diagnostics-enable t
 	  lsp-headerline-breadcrumb-enable t)
 
-(setq recentf-save-file "~/.cache/emacs/recentf"
-	  recentf-max-saved-items 10000
-	  recentf-max-menu-items 5000)
+(setq recentf-save-file "~/.emacs.d/recentf"
+	  recentf-max-saved-items 25
+	  recentf-max-menu-items 50)
 
 (setq mono-complete-fallback-command 'tab-to-tab-stop)
 
@@ -121,3 +122,5 @@
 	  treemacs-width-increment                 1
 	  treemacs-width-is-initially-locked       t
 	  treemacs-workspace-switch-cleanup        nil)
+
+;; (setq MIT-license "")

@@ -1,4 +1,7 @@
+(require 'apheleia)
 (require 'projectile)
+
+(load-file "~/.emacs.d/lisp/async-process.el")
 
 ;; compile definition
 ;;  valid words: command cmd path filepath workspace dir home
@@ -14,7 +17,6 @@
 
 ;; project definition:
 ;; FORM: (SYMBOL ...rest)
-;;	name STRING
 ;;	root-dir (list STRING)
 ;;	project-file 
 ;;	compilation-dir
@@ -30,7 +32,7 @@
 ;;	test-dir
 ;;	related-files-fn
 
-(class mode-config
+(class mode-config ()
   mode
   (workspace (list ".git"))
   (workspace-check-depth 4)
@@ -38,20 +40,8 @@
   project format
   builtin-terminal
   hooks mappings hook map
+  package
   repl)
-
-(mode! python-mode
-  :workspace '(".my-marker-file")
-  :workspace-check-depth 2
-  :builtin-terminal t
-
-  :compile
-  (run ("cat" filepath))
-  (test ("pytest" filepath))
-  (format ("black" filepath))
-
-  :format
-  (white ("black" filepath)))
 
 (defun mode-config--substitute (exp buf)
   (let* ((fname (buffer-file-name buf))
@@ -64,28 +54,24 @@
 					 (currentdir	,dir)
 					 (dir			,dir)
 					 (root			,ws)
-					 (workspace		,ws)))
-		 (exp (append '(list) exp)))
-	(eval (expression exp defaults))))
+					 (workspace		,ws))))
+	(string-join (expression exp defaults) " ")))
 
 ;; fix async process
 (defun mode-config-compile (conf &optional buf)
   (with-slots (compile) conf
 	(let* ((buf (or buf (current-buffer)))
 		   (commands (cl-loop for cmd in compile
-							  collect (let* ((k (car cmd))
+							  collect (let* ((k (format "%s" (car cmd)))
 											 (v (cadr cmd)))
-										`(,k (:value v)))))
+										`(,k (:value ,v)))))
 		   (action (lambda (selection)
 					 (let* ((value (plist-get selection :value))
 							(value (if (list? value)
 									   (mode-config--substitute value buf)
-									 value)))
-					   (with-shell-output! value
-						 (make-temp-buffer :prefix "*compile-"
-										   :split :below
-										   :contents output
-										   :read-only t)))))
+									 value))
+							(compile-command value))
+					   (funcall-interactively 'compile value))))
 		   (prompt (format "Compile %s" (buffer-file-name buf))))
 	  (%ivy commands action :prompt prompt))))
 
@@ -105,27 +91,18 @@
 		 (mappings (%. conf 'mappings)))
 	(cl-loop for x in mappings
 			 do (let* ((state (car x))
-					   (args (cdr x))
-					   (args (append `(:states ,state :keymaps ,map))))
-				  (apply 'general-define-key args)))))
+					   (args (append `(general-define-key :states ',state :keymaps ',map) (cdr x))))
+				  (eval args)))))
 
 (defun mode-config-add-hooks (conf)
   (let* ((m (%. conf 'mode))
 		 (hook (%. conf 'hook))
 		 (hooks (%. conf 'hooks))
-		 (fn-name (concat "mode-config-" (symbol-name) "-hook-function"))
+		 (fn-name (concat "mode-config-" (symbol-name m) "-hook-function"))
 		 (fn-name (intern fn-name))
 		 (fn (append `(defun ,fn-name ()) hooks)))
 	(eval fn)
 	(add-hook hook fn-name)))
-
-(defun mode-config-add-formatters (conf)
-  (cl-loop for x in (%. conf 'format)
-		   do (let* ((defined (%. apheleia-mode-alist (%. conf 'mode)))
-					 (name (add-to-list defined (car x)))
-					 (args (cdr x)))
-				(push `(name args) apheleia-formatters))))
-
 
 (defun mode-config-add-formatters (conf)
   (cl-loop for x in (%. conf 'format)
@@ -135,8 +112,7 @@
 					 (args (cdr x)))
 				(cl-pushnew name defined)
 				(setf (alist-get mode apheleia-mode-alist) defined)
-				(cl-pushnew `(,name . ,args) apheleia-formatters))))
-
+				(cl-pushnew `(,name ,@args) apheleia-formatters))))
 
 (defun mode-config-list-modes (&optional fullpath)
   (if fullpath
@@ -172,22 +148,14 @@
 			(,parsed (apply 'mode-config ,parsed))
 			(,hook (intern (format "%s-hook" (symbol-name ',m))))
 			(,map (intern (format "%s-map" (symbol-name ',m))))
-			(,repl (from-alist% (%. ,parsed 'repl)))
 			(,ws (or (%. ,parsed 'workspace) (list ".git")))
-			(,ws-check-depth (or (%. ,parsed 'workspace-check-depth) 4))
-			(,repl-input-filter-forms (or (%. ,repl 'input-filter) 's))
-			(,repl-input-filter (append '(lambda (s it)) (->list ,repl-input-filter-forms)))
-			(,repl-input-filter (eval ,repl-input-filter))
-			(,repl-help (or (%. ,repl 'help) (lambda (s) (format "help(%s)" s)))))
+			(,ws-check-depth (or (%. ,parsed 'workspace-check-depth) 4)))
 
 	   (%! ,parsed 'hook ,hook)
 	   (%! ,parsed 'map ,map)
-	   (%! ,parsed 'repl ,repl)
-	   (%! ,repl 'input-filter ,repl-input-filter)
-	   (%! ,repl 'help ,repl-help)
 
 	   (mode-config-add-projects ,parsed)
-	   (mode-config-add-formatters ,parsed)
+	   ;; (mode-config-add-formatters ,parsed)
 	   (mode-config-define-keys ,parsed)
 	   (mode-config-add-hooks ,parsed)
 
@@ -199,7 +167,3 @@
 	   ,parsed)))
 
 (mode! sh-mode)
-
-(mode! emacs-lisp-mode
-  :repl
-  (shell "zsh"))

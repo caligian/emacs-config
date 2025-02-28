@@ -60,17 +60,17 @@
       (general-define-key :keymaps 'local  :states 'normal "q" 'kill-buffer-and-window))
     buf))
 
-(defun buffer-split (buf direction)
-  (with-current-buffer (current-buffer)
-    (pcase direction
-      ('split (split-window-below)
-	      (other-window 1)
-	      (switch-to-buffer buf))
-      ('vsplit (split-window-right)
-	       (other-window 1)
-	       (switch-to-buffer buf))
-      ('frame (switch-to-buffer-other-frame buf))
-      ('window (switch-to-buffer-other-window buf)))))
+(defun buffer-split (&optional buf direction)
+  (with-current-buffer (or (current-buffer) buf)
+	(pcase direction
+	  (:split (split-window-below)
+			  (other-window 1)
+			  (switch-to-buffer buf))
+	  (:vsplit (split-window-right)
+			   (other-window 1)
+			   (switch-to-buffer buf))
+	  (:frame (switch-to-buffer-other-frame buf))
+	  (:window (switch-to-buffer-other-window buf)))))
 
 (defun buffer2string (buf &optional start-point end-point)
   (with-current-buffer (or buf (current-buffer))
@@ -282,13 +282,25 @@
 		  (local-set-key (kbd "C-g") 'buffer-kill1)
 
 		  (cond
-		   ((or (eq split :right) (eq split :below))
-			(if (eq split :right)
+		   ((or (eq split 'right) (eq split 'below))
+			(if (eq split 'right)
 				(split-window-right)
 			  (split-window-below))
 			(other-window 1)
 			(switch-to-buffer buf))
-		   ((eq split :frame)
+		   ((eq split 'frame)
 			(switch-to-buffer-other-frame buf))
-		   ((eq split :window)
+		   ((eq split 'window)
 			(switch-to-buffer-other-window))))))))
+
+(defun buffer-setlocal (buf &rest var-plist)
+  (with-current-buffer buf
+	(cl-loop for i in (range@ 0 (length var-plist) 2)
+			 do (let* ((var (elt var-plist i))
+					   (value (elt var-plist (1+ i))))
+				  (eval `(setq-local ,var ,value))))))
+
+(defun buffer-getlocal (buf &rest vars)
+  (with-current-buffer buf
+	(cl-loop for var in vars
+			 collect (symbol-value var))))
