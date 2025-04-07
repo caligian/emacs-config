@@ -16,10 +16,10 @@
 (class repl ()
   process process-buffer
   command cwd
-  (shell nil)
-  (shell-command (local-config-get :shell-command))
-  use-input-file
   mode
+  (shell nil)
+  (shell-command (cget :shell-command))
+  use-input-file
   (input-filter
    (lambda (s it) s))
   help)
@@ -27,49 +27,61 @@
 ;; repl
 ;; (<path> (shell <repl>) (workspace <repl>))
 
-(local-config-set
- :repls 'shell
- (repl :cwd "/home/skeletor"
-       :command (local-config-get :shell-command)))
+(cset :repls 'shell
+	  (repl :cwd (getenv "HOME")
+			:mode 'shell
+			:command (cget :shell-command)))
 
 (cl-defmethod repl--register ((it repl))
   (with-slots (shell cwd mode) it
     (if shell
-        (local-config-set :repls mode cwd 'shell it)
-      (local-config-set :repls mode cwd 'workspace it))))
+        (cset :repls mode cwd 'shell it)
+      (cset :repls mode cwd 'workspace it))))
 
-(cl-defun repl-init (&optional buf (shell nil))
-  (when-let* ((buf (or buf (current-buffer)))
-			  (mode (buffer-major-mode buf))
-			  (conf (buffer-mode-config buf))
-			  (conf (%. conf 'repl))
-			  (command (%. conf 'command))
-			  (command (if (list? command)
-						   (mode-config--substitute command buf)
-						 command))
-			  (command (string-split command " "))
-			  (executable (whereis (car command)))
-			  (command (append (list executable) (cdr command)))
-			  (command (string-join command " "))
-			  (args (list :mode mode
-						  :shell shell
-						  :command command
-						  :cwd (or (find-buffer-workspace buf) (dirname buf))))
-			  (input-filter (or (%. conf 'input-filter) -1))
-			  (use-input-file (or (%. conf 'use-input-file) -1))
-			  (args (if (not (number? use-input-file))
-						(append args (list :use-input-file use-input-file))
-					  args))
-			  (args (if (not (number? input-filter))
-						(append args (list :input-filter input-filter))
-					  args))
-			  (it (apply 'repl args)))
-	(repl--register it)
-	it))
+(cl-defun repl-init (&optional
+					 buf
+					 &key
+					 command
+					 cwd
+					 shell
+					 (shell-command (cget :shell-command))
+					 use-input-file
+					 (input-filter (lambda (s it) s))
+					 help)
+  (let* ((buf (or buf (current-buffer)))
+		 (mode (buffer-major-mode buf))
+		 (conf (when mode
+				 (cget :modes mode)))
+		 (conf (and conf (%. conf 'repl))))
+	(when-let* ((command (if shell
+							 shell-command
+						   (if conf
+							   (%. conf 'command)
+							 command)))
+				(command (if (listp command)
+							 (string-join command " ")
+						   command))
+				(args (list :shell shell
+							:mode mode
+							:command command
+							:cwd (or cwd
+									 (find-buffer-workspace buf)
+									 (dirname buf))))
+				(input-filter (or (%. conf 'input-filter) -1))
+				(use-input-file (or (%. conf 'use-input-file) -1))
+				(args (if (not (number? use-input-file))
+						  (append args (list :use-input-file use-input-file))
+						args))
+				(args (if (not (number? input-filter))
+						  (append args (list :input-filter input-filter))
+						args))
+				(it (apply 'repl args)))
+	  (repl--register it)
+	  it)))
 
 (cl-defun repl-buffer-get-repl (&optional buf (type 'shell))
   (let* ((buf (or buf (current-buffer))))
-    (local-config-get
+    (cget
      :repls
      (buffer-major-mode buf)
      (or (find-buffer-workspace buf) (dirname buf))
@@ -84,7 +96,7 @@
 (cl-defmethod repl-start ((it repl))
   (if (repl-live? it)
       it
-    (with-slots (command cwd shell shell-command) it
+    (with-slots (mode command cwd shell shell-command) it
       (split-window-vertically)
       (other-window 1)
       (let* ((proc-buf (ansi-term shell-command))
@@ -96,6 +108,11 @@
         (when (and command (not shell))
           (process-send-string proc (concat command "\n")))
         (delete-window)
+		(if shell
+			(message "Workspace terminal started for %s" cwd)
+		  (if (eq mode 'shell)
+			  (message "Terminal started for %s" cwd)
+			(message "REPL (%s) started for %s" mode cwd)))
         it))))
 
 (cl-defmethod repl-split ((it repl) &optional direction)
@@ -182,31 +199,30 @@
 (cl-defmethod repl-send-defun ((it repl) &optional buf)
   (repl-send-thing-at-point it 'defun buf))
 
+(cl-defmethod repl-send-C-c ((it repl) &optional buf)
+  (repl-send-string it ""))
+
+(cl-defmethod repl-send-C-l ((it repl) &optional buf)
+  (repl-send-string it ""))
 
 (defun repl--create-shell-functions ()
   (dolist (name '("start" "stop"
 				  "hide" "stop"
 				  "split" "split-right"
-				  "send-region" "send-line" "send-buffer"))
+				  "send-region" "send-line" "send-buffer" "send-C-c" "send-C-l"))
 	(eval (append@
 		   (list 'defun
 				 (intern (concat "repl-shell-" name))
 				 nil
 				 '(interactive))
 		   (list (intern (concat "repl-" name))
-				 (local-config-get :repls 'shell)))))
-  (dolist (name '("send-region" "send-line" "send-buffer"))
-	(eval (append@
-		   `(defun ,(intern (concat "repl-shell-" name)) (&optional buf)
-			  (interactive))
-		   `(,(intern (concat "repl-" name))
-			 (local-config-get :repls 'shell) buf)))))
+				 (cget :repls 'shell))))))
 
 (defun repl--create-mapping-functions ()
   (dolist (name '("start" "stop" "hide"
 				  "split" "split-right"
 				  "send-buffer" "send-line" "send-region"
-				  "send-sexp" "send-defun"))
+				  "send-sexp" "send-defun" "send-C-c" "send-C-l"))
     (let* ((actual-fn (intern (concat "repl-" name))) 
            (fn-name (intern (concat "repl-mapping-" name)))
            (fn-root-name (intern (concat "repl-mapping-root-" name))))
@@ -215,7 +231,7 @@
 		  (interactive)
 		  (when-let* ((buf (or buf (current-buffer)))
 					  (it (or (repl-buffer-get-repl buf 'shell)
-							  (repl-init buf t))))
+							  (repl-init buf :shell t))))
 			(,actual-fn it))))
 	  (eval
 	   `(defun ,fn-name (&optional buf)
@@ -226,33 +242,44 @@
 			(,actual-fn it)))))))
 
 (defun repl--create-mappings ()
-  (define-key! repl (:prefix "SPC" :keymaps 'repl-mode-map)
+  (define-key! repl ()
     (normal
-     "<return><return>" 'repl-mapping-root-start
-     "<return>s" 'repl-mapping-root-split
-     "<return>v" 'repl-mapping-root-split-right
-     "<return>e" 'repl-mapping-root-send-line
-     "<return>b" 'repl-mapping-root-send-buffer
-     "<return>k" 'repl-mapping-root-hide
-     "<return>q" 'repl-mapping-root-stop
-	 "<return>." 'repl-mapping-root-send-sexp)
+	 :prefix "SPC <return>"
+     "<return>" 'repl-mapping-root-start
+     "s" 'repl-mapping-root-split
+     "C-c" 'repl-mapping-root-send-C-c
+     "C-l" 'repl-mapping-root-send-C-l
+     "v" 'repl-mapping-root-split-right
+     "e" 'repl-mapping-root-send-line
+     "b" 'repl-mapping-root-send-buffer
+     "k" 'repl-mapping-root-hide
+     "q" 'repl-mapping-root-stop
+	 "." 'repl-mapping-root-send-sexp)
     (normal
-     "rr" 'repl-mapping-start
-     "rs" 'repl-mapping-split
-     "rv" 'repl-mapping-split-right
-     "re" 'repl-mapping-send-line
-     "rb" 'repl-mapping-send-buffer
-     "rk" 'repl-mapping-hide
-     "rq" 'repl-mapping-stop
-	 "r." 'repl-mapping-send-sexp
-	 "rd" 'repl-mapping-send-defun)
+	 :keymaps 'repl-mode-map
+	 :prefix "SPC r"
+     "C-c" 'repl-mapping-root-send-C-c
+     "C-l" 'repl-mapping-root-send-C-l
+     "r" 'repl-mapping-start
+     "s" 'repl-mapping-split
+     "v" 'repl-mapping-split-right
+     "e" 'repl-mapping-send-line
+     "b" 'repl-mapping-send-buffer
+     "k" 'repl-mapping-hide
+     "q" 'repl-mapping-stop
+	 "." 'repl-mapping-send-sexp
+	 "d" 'repl-mapping-send-defun)
     (visual
+	 :keymaps 'repl-mode-map
+	 :prefix "SPC"
      "re" 'repl-mapping-send-region
      "<return>e" 'repl-mapping-root-send-region))
 
   (define-key! repl-shell (:prefix "SPC x")
     (normal
      "x" 'repl-shell-start
+     "C-c" 'repl-shell-send-C-c
+     "C-l" 'repl-shell-send-C-l
      "s" 'repl-shell-split
      "v" 'repl-shell-split-right
      "e" 'repl-shell-send-line

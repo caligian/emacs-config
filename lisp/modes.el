@@ -57,25 +57,6 @@
 					 (workspace		,ws))))
 	(string-join (expression exp defaults) " ")))
 
-;; fix async process
-(defun mode-config-compile (conf &optional buf)
-  (with-slots (compile) conf
-	(let* ((buf (or buf (current-buffer)))
-		   (commands (cl-loop for cmd in compile
-							  collect (let* ((k (format "%s" (car cmd)))
-											 (v (cadr cmd)))
-										`(,k (:value ,v)))))
-		   (action (lambda (selection)
-					 (let* ((value (plist-get selection :value))
-							(value (if (list? value)
-									   (mode-config--substitute value buf)
-									 value))
-							(compile-command value))
-					   (funcall-interactively 'compile value))))
-		   (prompt (format "Compile %s" (buffer-file-name buf))))
-	  (%ivy commands action :prompt prompt))))
-
-
 (defun mode-config-add-projects (conf)
   (cl-loop for x in (%. conf 'project)
 		   do (let* ((x (cdr (from-plist% x)))
@@ -133,6 +114,7 @@
 (defmacro mode! (m &rest args)
   (declare (indent 1))
   (cl-with-gensyms (parsed
+					compile
 					map
 					hook
 					repl
@@ -151,8 +133,7 @@
 			(,ws (or (%. ,parsed 'workspace) (list ".git")))
 			(,ws-check-depth (or (%. ,parsed 'workspace-check-depth) 4)))
 
-	   (%! ,parsed 'hook ,hook)
-	   (%! ,parsed 'map ,map)
+	   (%setq ,parsed 'hook ,hook 'map ,map)
 
 	   (mode-config-add-projects ,parsed)
 	   ;; (mode-config-add-formatters ,parsed)
@@ -164,6 +145,7 @@
 	   (when (%. ,parsed 'builtin-terminal)
 		 (add-hook ,hook 'repl-mode))
 
+	   (message "compile: %s" (%. ,parsed 'compile))
 	   ,parsed)))
 
 (mode! sh-mode)

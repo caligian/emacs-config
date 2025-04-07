@@ -1,7 +1,11 @@
 (setq local-config
 	  (ht
-	   (:shell-command "/usr/bin/zsh")
-	   (:temp-buffer-patterns '("^\\*" "temp-*" "^async-"))
+	   (:light-theme 'doom-acario-light)
+	   (:dark-theme 'doom-henna)
+	   (:diary-buffer nil)
+	   (:diary-path "~/diary.org")
+	   (:shell-command "/bin/bash")
+	   (:temp-buffer-patterns '("temp-*" "^async-" "^[*]" "Flymake diagnostics"))
 	   (:terminal-shell-command "/usr/bin/zsh")
 	   (:repls (ht))
 	   (:modes (ht))
@@ -33,20 +37,17 @@
 	`(let* ((,real-id ',id)
 			(,final-forms
 			 (cl-loop for form in ',forms
-					  collect (let* ((state (car form))
+					  do (let* ((state (car form))
 									 (rest-args (append ',overrides (cdr form)))
 									 (out (append `(:states ',state) rest-args)))
-								(eval (append (list 'general-define-key) out))
-								out))))
-	   (local-config-set :mappings ,real-id ,final-forms))))
+								(eval (append (list 'general-define-key) out)))))))))
 
 (defmacro local-config-add-hook (id hook &rest forms)
   (declare (indent 2))
   (cl-with-gensyms (form final-form)
 	`(let* ((,form (lambda nil ,@forms))
 			(,final-form (list ',hook ,form)))
-	   (apply 'add-hook ,final-form)
-	   (local-config-set :hooks ',id ,final-form))))
+	   (apply 'add-hook ,final-form))))
 
 (defun local-config-setup-temp-buffers ()
   (cl-loop for regex in (%. local-config :temp-buffer-patterns)
@@ -56,5 +57,26 @@
   (cl-loop for file in (list-emacs-lisp-files "~/.emacs.d/config" t)
 		   do (load-file file)))
 
+(defun local-config-create-path (words &optional overrides)
+  (let* ((lookup (cget :path-lookup-alist))
+		 (lookup (append lookup overrides))
+		 (words (cl-loop for word in words collect
+						 (let* ((exp (cond
+									  ((listp word) (eval word))
+									  ((stringp word) word)
+									  (t (%. lookup word)))))
+						   (if exp
+							   (if (listp exp) (eval exp) exp) 
+							 (symbol-name word))))))
+	(string-join words "/")))
+
+(defmacro local-config-create-path! (words &optional overrides)
+  "if `overrides' is a symbol, it must point to an alist and not to another symbol"
+  (local-config-create-path words overrides))
+
 (defalias 'define-key! 'local-config-define-key)
 (defalias 'add-hook! 'local-config-add-hook)
+(defalias 'create-path 'local-config-create-path)
+(defalias 'create-path! 'local-config-create-path)
+(defalias 'cget 'local-config-get)
+(defalias 'cset 'local-config-set)

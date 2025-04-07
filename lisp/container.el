@@ -201,3 +201,47 @@
 
 (defalias '%. '%get)
 (defalias '%! '%set)
+
+(cl-defun menu@ (prompt lst &key action (depth 1))
+  (cl-labels ((-menu (prompt lst action depth current-depth)
+				(let* ((lst (if (alistp lst)
+								(cl-loop for x in lst
+										 collect (propertize (format "%s" (car x)) 'value (last@ x)))
+							  (cl-loop for i in (range@ 0 (length (list 1 2 3)) 2)
+									   collect (propertize (format "%s" (nth lst i)) 'value (nth lst (1+ i))))))
+					   (selection (if (not action)
+									  (ivy-read prompt lst)
+									(ivy-read prompt lst :action action)))
+					   (value (get-text-property 0 'value selection)))
+				  (if (and (< current-depth depth)
+						   (or (alistp value)
+							   (and  
+								(listp value)
+								(stringp (car value))
+								(= 0 (% (length value) 2)))))
+					  (-menu selection value action depth (1+ current-depth))
+					value))))
+	(let* ((action (if (closurep action)
+					   `(lambda ,@(nthcdr 2 action))
+					 action))
+		   (action (if (functionp action) (eval action) action))
+		   (-action (if (and (listp action)
+							 (or (listp (car action))
+								 (integerp (car action))))
+						(progn
+						  (cl-loop for x in action
+								 collect (if (not (listp x))
+											 x
+										   (let* ((fn (nth 1 x))
+												  (fn `(lambda (selection)
+														 (funcall ,fn (get-text-property 0 'value selection))))
+												  (fn (eval fn))
+												  (form (list (nth 0 x) fn (nth 2 x))))
+											 form))))
+					  (eval
+					   `(lambda (selection)
+						  (funcall ,action (get-text-property 0 'value selection)))))))
+	  (-menu prompt lst -action depth 1))))
+
+;; (menu@ "% " '(("a" (1 2 3 4)) ("b" 2))
+;; 	   :action '(1 ("o" (lambda (value) (message "%s" value)) "test-action-1")))

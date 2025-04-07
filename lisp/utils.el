@@ -37,9 +37,7 @@
     t))
 
 (defun alistp (x)
-  (when-let* ((test (list? x))
-	      (first-value (nth 0 x)))
-    (container? first-value)))
+  (and (listp x) (listp (car x))))
 
 (defalias 'alist? 'alistp)
 

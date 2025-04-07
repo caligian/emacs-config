@@ -2,13 +2,6 @@
   :compile (command " " path) 
 
   :mappings
-  (normal :prefix "SPC <return>"
-		  "<return>" 'R-root-start
-		  "k" 'R-root-hide
-		  "q" 'R-root-stop
-		  "s" 'R-root-split
-		  "v" 'R-root-split-right)
-
   (normal :prefix "SPC m"
 		  "i" 'R-install
 		  "d" 'R-document
@@ -47,4 +40,3 @@
 			  ess-indent-level 2
 			  ess-indent-offset 2)
   (abbrev-mode t))
-

@@ -213,6 +213,7 @@
   (kill-buffer (or buf (current-buffer)))
   (delete-window))
 
+
 (cl-defun make-temp-buffer (&key
 							(prefix "*temp-buffer-")
 							(contents nil)
@@ -224,34 +225,27 @@
 	(error "cannot pass both :read-only and :on-input"))
 
   (let* ((buf (get-buffer-create (make-temp-name prefix)))
-		 (contents-list (if (string? contents)
+		 (contents-list (if (stringp contents)
 							(string-split contents "\n")
 						  contents))
-		 (contents (cond
-					((string? contents)
-					 contents)
-					((list? contents)
-					 (string-join contents "\n"))))
 		 (contents-len (when contents-list (length contents-list)))
-		 (on-input (when on-input
-					 (lambda nil
-					   (interactive)
-					   (let* ((buf (current-buffer))
-							  (text (with-current-buffer buf (buffer-string)))
-							  (lines (string-split text "\n")))
-						 (funcall on-input
-								  (list
-								   :lines (cl-loop
-										   for line in (nthcdr contents-len lines)
-										   when (> (length line) 0)
-										   collect line)
-								   :buffer buf))
-						 (buffer-kill1 buf))))))
+		 (contents (if (stringp contents)
+					   contents
+					 (string-join contents "\n")))
+		 (-on-enter on-enter)
+		 (-on-input (when on-input
+					  (eval `(lambda ()
+							   (interactive)
+							   (with-current-buffer ,buf
+								 (let* ((text (buffer-string))
+										(lines (string-split text "\n")))
+								   (funcall ,on-input (list :text text :lines lines))
+								   (buffer-kill1 (current-buffer)))))))))
 	(with-current-buffer (current-buffer)
 	  (when contents
 		(with-current-buffer buf
 		  (insert contents)
-		  (when on-input
+		  (when -on-input
 			(let* ((curpoint (point-max)))
 			  (insert "\n")
 			  (buffer-region-make-read-only buf (point-min) curpoint)))))
@@ -262,17 +256,15 @@
 
 	  (when split
 		(with-current-buffer buf
-		  (setq-local lexical-binding t)
+		  (when -on-enter
+			(funcall -on-enter buf))
 
-		  (when on-enter
-			(funcall on-enter buf))
-
-		  (when on-input
+		  (when -on-input
 			(general-define-key
 			 :keymaps 'override
 			 :states '(normal)
-			 "<return>" on-input)
-			(local-set-key (kbd "C-c C-c") on-input))
+			 "<return>" -on-input)
+			(local-set-key (kbd "C-c C-c") -on-input))
 
 		  (general-define-key
 		   :keymaps 'override
@@ -282,25 +274,20 @@
 		  (local-set-key (kbd "C-g") 'buffer-kill1)
 
 		  (cond
-		   ((or (eq split 'right) (eq split 'below))
-			(if (eq split 'right)
+		   ((or (equal split "right") (equal split "below"))
+			(if (equal split "right")
 				(split-window-right)
 			  (split-window-below))
 			(other-window 1)
 			(switch-to-buffer buf))
-		   ((eq split 'frame)
+		   ((equal split "frame")
 			(switch-to-buffer-other-frame buf))
-		   ((eq split 'window)
+		   ((equal split "window")
 			(switch-to-buffer-other-window))))))))
 
 (defun buffer-setlocal (buf &rest var-plist)
-  (with-current-buffer buf
+  (with-current-buffer (or buf (current-buffer))
 	(cl-loop for i in (range@ 0 (length var-plist) 2)
 			 do (let* ((var (elt var-plist i))
 					   (value (elt var-plist (1+ i))))
 				  (eval `(setq-local ,var ,value))))))
-
-(defun buffer-getlocal (buf &rest vars)
-  (with-current-buffer buf
-	(cl-loop for var in vars
-			 collect (symbol-value var))))

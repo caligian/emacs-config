@@ -1,5 +1,11 @@
 (define-key! misc (:prefix "SPC")
   (normal
+   "hf" 'describe-function
+   "hv" 'describe-variable
+   "hc" 'counsel-load-theme
+   "SPC" (defun pop-local-mark ()
+		   (interactive)
+		   (set-mark-command -1))
    ",p" "\"+p"
    ",," 'scratch-buffer-below 
    ",;" 'scratch-buffer-right)
@@ -11,8 +17,15 @@
    "qq" ":qa!"
    "qx" ":xa"))
 
+(define-key! editing ()
+  ((normal insert)
+   "M-y" 'counsel-yank-pop
+   "C-<backspace>" (general-simulate-key "C-u <backspace>")))
+
 (define-key! file (:prefix "SPC")
   (normal
+   "ff" 'counsel-find-file
+   "fr" 'counsel-recentf
    "fp" (lambda nil
 		  (interactive)
 		  (find-file-other-frame "~/.emacs.d/lisp"))
@@ -22,14 +35,22 @@
 
 (define-key! buffer (:prefix "SPC")
   (normal
+   "bl" (defun switch-to-last-buffer ()
+		  (interactive)
+		  (let* ((prev (cget :last-buffer))
+				 (cur (current-buffer))
+				 (prev (or prev cur)))
+			(cset :last-buffer cur)
+			(when (not (eq cur prev))
+			  (switch-to-buffer prev))))
+   "bb" 'counsel-switch-buffer
    "bm" 'bookmark-set
+   "bB" 'counsel-bookmark
    "br" "C-x C-q"
    "bk" 'delete-window
-   "bq" (lambda ()
+   "bq" (defun kill-current-buffer ()
 		  (interactive)
 		  (kill-buffer (current-buffer)))
-   "bl" "C-x <left>"
-   "bh" "C-u C-SPC"
    "bn" 'next-buffer
    "bp" 'previous-buffer))
 
@@ -59,44 +80,19 @@
 (define-key! org (:prefix "SPC")
   (normal
    :keymaps 'org-mode-map
-   "mm" (general-key "C-c")
-   "mv" (general-key "C-c C-v")
-   "m!" 'org-babel-hide-result-toggle-maybe
-   "mcb" 'org-babel-execute-buffer
-   "mcc" 'org-babel-execute-src-block))
-
-(define-key! ivy (:prefix "SPC")
-  (normal
-   "." 'counsel-projectile-switch-to-buffer
-   ">" 'counsel-projectile-switch-project
-   "/" 'counsel-projectile-rg
-   "SPC" 'ivy-resume)
-  (normal
-   "fr" 'counsel-recentf
-   "hc" 'counsel-load-theme
-   "hf" 'counsel-describe-function
-   "hv" 'counsel-describe-variable
-   "ff" 'counsel-find-file
-   "bb" 'counsel-switch-buffer
-   "fg" 'counsel-git
-   "&." 'ivy-yasnippet))
+   "e" (general-key "C-c C-e")
+   "m" (general-key "C-c")
+   "v" (general-key "C-c C-v")
+   "ck" 'org-babel-hide-result-toggle-maybe
+   "cb" 'org-babel-execute-buffer
+   "cc" 'org-babel-execute-src-block))
 
 (define-key! projectile (:prefix "SPC")
   (normal
    "p" 'projectile-command-map))
 
-(define-key! toggle-evil-mode nil
-  (normal
-   "C-\\" (defun toggle-evil-local-mode ()
-			(interactive)
-			(if (not evil-local-mode)
-				(turn-on-evil-mode)
-			  (turn-off-evil-mode)))))
-
-(global-set-key (kbd "C-\\") 'toggle-evil-local-mode)
-
 (define-key! completion-and-misc nil
-  ((normal visual)
+  ((normal visual insert emacs)
    "M-/" 'hippie-expand
    "M-SPC" 'company-complete-common
    "M-=" 'align-regexp
@@ -106,9 +102,11 @@
   (normal
    :keymaps 'flymake-mode-map
    "M-n" 'flymake-goto-next-error
-   "M-p" 'flymake-goto-prev-error
-   "SPC l?" 'flymake-show-buffer-diagnostics
-   "SPC ld" 'flymake-show-project-diagnostics))
+   "M-p" 'flymake-goto-prev-error)
+  (normal
+   :prefix "SPC l"
+   "F" 'flymake-mode
+   "d" 'flymake-show-project-diagnostics))
 
 (define-key! undo-fu nil
   ((visual normal)
@@ -121,32 +119,27 @@
 
 (define-key! formatter (:prefix "SPC")
   (normal
-   "cf" 'apheleia))
-
-(define-key! lsp (:prefix "SPC")
-  (normal
-   "ls" 'lsp-ivy-workspace-symbol))
-
-(define-key! centaur-tabs (:prefix "SPC t")
-  (normal
-   "t" 'centaur-tabs--create-new-tab
-   "n" 'centaur-tabs-forward
-   "n" 'centaur-tabs-forward
-   "p" 'centaur-tabs-backward
-   "." 'centaur-tabs-counsel-switch-group
-   "f" 'centaur-tabs-forward-group
-   "b" 'centaur-tabs-backward-group
-   "0" 'centaur-tabs-select-beg-tab
-   "$" 'centaur-tabs-select-end-tab
-   "q" 'centaur-tabs-kill-all-buffers-in-current-group))
+   "cf" 'apheleia-format-buffer))
 
 (define-key! treemacs (:prefix "SPC")
   (normal
-   "``" 'treemacs
-   "`b" 'treemacs-bookmark
-   "`f" 'treemacs-find-file
-   "`t" 'treemacs-find-tag))
+   "t" 'treemacs))
 
 (define-key! swiper ()
   ((normal visual)
    "C-s" 'swiper))
+
+(define-key! toggle-bg (:prefix "SPC h")
+  (normal
+   "C" (defun toggle-theme-bg ()
+		 (interactive)
+		 (if-let* ((current (car custom-enabled-themes))
+				   (current-name (symbol-name current)))
+			 (if (=~ current-name "light")
+				 (load-theme (or (cget :dark-theme) 'doom-henna) t)
+			   (load-theme (or (cget :light-theme) 'doom-acario-light) t))
+		   (load-theme (cget :light-theme) t)))))
+
+(define-key! ripgrep (:prefix "SPC")
+  (normal
+   "?" 'rg-menu))

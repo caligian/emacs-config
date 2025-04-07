@@ -1,84 +1,144 @@
+(setq use-package-always-ensure t)
+
+(use-package doom-themes
+  :defer nil
+  :config
+  (setq doom-themes-enable-bold t
+		doom-themes-enable-italic t)
+  (load-theme 'doom-henna t)
+  (doom-themes-visual-bell-config)
+  (doom-themes-treemacs-config)
+  (doom-themes-org-config))
+
+(use-package general
+  :ensure t
+  :defer nil) 
+ 
+(use-package evil
+  :ensure t
+  :config
+  (evil-mode))
+
+(use-package projectile
+  :ensure t
+  :defer 50
+  :config
+  (projectile-mode +1))
+
+(use-package ts
+  :ensure t)
+
+(use-package smartparens
+  :ensure t
+  :config
+  (smartparens-mode)
+  (require 'smartparens-config))
+
+(use-package transient
+  :ensure t)
+
+(use-package ht
+  :ensure t)
+
+(use-package f
+  :ensure t)
+
+(use-package swiper
+  :ensure t)
+
+(use-package counsel
+  :ensure t
+  :defer 50
+  :config (counsel-mode)) 
+
 ;; load use-package
-(straight-use-package 'project)
-(straight-use-package 'tree-sitter)
-(straight-use-package 'tree-sitter-langs)
-
-(use-package project)
-
 (use-package exec-path-from-shell
+  :ensure t
   :config
   (exec-path-from-shell-initialize))
 
-(use-package smartparens
-  :config
-  (require 'smartparens-config)
-  (smartparens-global-mode 1))
-
 (use-package evil-collection
+  :ensure t
+  :after (evil)
   :config
   (require 'evil-collection)) 
 
-(use-package undo-fu)
+(use-package undo-fu
+  :ensure t) 
 
 (use-package evil-surround
+  :ensure t
+  :after (evil)
   :config
   (global-evil-surround-mode t)) 
 
 (use-package evil-snipe
+  :ensure t
+  :after (evil)
   :config
   (evil-snipe-mode t))
 
 (use-package tree-sitter-langs
-  :defer t
-  :config
+  :ensure t
+  :after (tree-sitter)
   (require 'tree-sitter-langs)
   (global-tree-sitter-mode))
 
 (use-package tree-sitter
-  :defer t
+  :ensure t
+  :defer 2000
   :config
   (require 'tree-sitter))
 
 (use-package popwin
+  :ensure t
+  :defer nil
   :config
+  (popwin-mode)
   (dolist (pattern '("^\\*" messages-buffer-mode))
-	(push pattern popwin:special-display-config))
-  (popwin-mode))
-
-(use-package projectile
-  :config
-  (projectile-mode +1))
-
-(use-package kaolin-themes)
-
-(use-package ivy)
-
-(use-package counsel)
+	(push pattern popwin:special-display-config)))
 
 (use-package company-box
-  :hook (company-mode . company-box-mode))
+  :ensure t
+  :config
+  (add-hook 'company-mode-hook 'company-box-mode))
 
-(use-package all-the-icons)
+(use-package all-the-icons
+  :ensure t
+  :defer nil) 
 
 (use-package company 
+  :ensure t
+  :defer nil
+  :hook (find-file . global-company-mode))
+  :init
+  (setq company-idle-delay 0.05)
+
+(use-package doom-modeline
+  :ensure t
+  :defer nil
   :config
-  (global-company-mode t))
+  (doom-modeline-mode t)) 
 
-(use-package mood-line
+(use-package ess
+  :ensure t
+  :defer 300
   :config
-  (mood-line-mode)
-  :custom
-  (mood-line-glyph-alist mood-line-glyphs-fira-code))
-
-(use-package ess)
-
-(use-package yasnippet-snippets)
+  (load-file "~/.emacs.d/lisp/R.el"))
 
 (use-package yasnippet
+  :ensure t
+  :defer 1000
   :config
   (yas-global-mode t))
 
+(use-package yasnippet-snippets
+  :ensure t
+  :after (yasnippet))
+
 (use-package ligature
+  :ensure t
+  :defer 100
   :config
   (ligature-set-ligatures 't '("www"))
   (ligature-set-ligatures 'eww-mode '("ff" "fi" "ffi"))
@@ -88,8 +148,7 @@
      ":::" "::=" "=:=" "===" "==>" "=!=" "=>>" "=<<" "=/=" "!=="
      "!!." ">=>" ">>=" ">>>" ">>-" ">->" "->>" "-->" "---" "-<<"
      "<~~" "<~>" "<*>" "<||" "<|>" "<$>" "<==" "<=>" "<=<" "<->"
-     "<--" "<-<" "<<=" "<<-" "<<<" "<+>" "</>" "###" "#_(" "..<"
-     "..." "+++" "/==" "///" "_|_" "www" "&&" "^=" "~~" "~@" "~="
+     "..." "+++" "/==" "///" "_|_" "www" "&&" "^=" "~~""~@" "~="
      "~>" "~-" "**" "*>" "*/" "||" "|}" "|]" "|=" "|>" "|-" "{|"
      "[|" "]#" "::" ":=" ":>" ":<" "$>" "==" "=>" "!=" ">:"
      ">=" ">>" ">-" "-~" "-|" "->" "--" "-<" "<~" "<*" "<|" "<:"
@@ -100,136 +159,80 @@
   (global-ligature-mode t))
 
 (use-package real-auto-save
-  :init
-  (setq real-auto-save-interval 5)
+  :ensure t
   :config
+  (setq real-auto-save-interval 5)
   (require 'real-auto-save)
   (add-hook 'prog-mode-hook 'real-auto-save-mode))
 
-(use-package auctex)
-
 (use-package outline-indent
-  :custom
-  (outline-indent-ellipsis " ▼ ")
+  :ensure t
   :config
+  (outline-indent-ellipsis " ▼ ")
   (outline-indent-minor-mode))
 
+(use-package python-mode :ensure t)
+
 (use-package pipenv
-  :hook (python-mode . pipenv-mode)
-  :init
+  :ensure t
+  :config
+  (add-hook 'python-mode-hook 'pipenv-mode)
   (setq
    pipenv-projectile-after-switch-function
    #'pipenv-projectile-after-switch-extended))
 
-(use-package ivy-yasnippet)
-
 (use-package mono-complete
+  :ensure t
   :config
-  (define-key mono-complete-mode-map (kbd "<tab>") 'mono-complete-expand-or-fallback))
+  (define-key mono-complete-mode-map
+	      (kbd "<tab>")
+	      'mono-complete-expand-or-fallback))
 
 (use-package highlight-defined
+  :ensure t
   :config
-  (highlight-defined-mode))
-
-(use-package org-bullets
-  :config
-  (add-hook 'org-mode-hook 'org-bullets-mode))
-
-(use-package org-modern
-  :config
-  (add-hook 'org-mode-hook 'org-modern-mode))
+  (add-hook 'find-file-hook 'highlight-defined-mode))
 
 (use-package diff-hl
+  :ensure t
   :config
-  (global-diff-hl-mode))
+  (add-hook 'find-file-hook 'global-diff-hl-mode))
 
 (use-package rg
-  :config
-  (define-key! ripgrep (:prefix "SPC")
-	(normal
-	 "?" 'rg-menu)))
+  :ensure t
+  :defer 100)
 
-(use-package magit)
-
-(use-package vterm
-  :ensure t)
+(use-package magit
+  :ensure t
+  :defer 100)
 
 (use-package treesit-auto
+  :ensure t
+  :after (tree-sitter)
   :config
   (global-treesit-auto-mode))
 
 (use-package evil-escape
+  :ensure t
+  :after (evil)
   :config
   (evil-escape-mode)
   (global-set-key (kbd "C-c C-g") 'evil-escape))
 
 (use-package evil-visualstar
+  :ensure t
+  :after (evil)
   :config
   (global-evil-visualstar-mode))
 
-(use-package move-text
-  :config
-  (move-text-default-bindings))
-
 (use-package ace-window
+  :ensure t
+  :defer 300
   :config
   (global-set-key (kbd "M-o") 'ace-window))
 
-(use-package centaur-tabs
-  :config
-  (defun centaur-tabs-hide-tab (x)
-	"Do no to show buffer X in tabs."
-	(let ((name (format "%s" x)))
-	  (or
-	   ;; Current window is not dedicated window.
-	   (window-dedicated-p (selected-window))
-
-       ;; Buffer name not match below blacklist.
-	   (=~ name "[*]")
-       (=~ name "[*]epc")
-       (=~ name "[*]helm")
-       (=~ name "[*]Helm")
-       (=~ name "[*]Compile-Log[*]")
-       (=~ name "[*]lsp")
-       (=~ name "[*]company")
-       (=~ name "[*]Flycheck")
-       (=~ name "[*]tramp")
-       (=~ name "[*]Mini")
-       (=~ name "[*]help")
-       (=~ name "[*]straight")
-       (=~ name "[*]temp")
-       (=~ name "[*]Help")
-       (=~ name "[*]mybuf")
-	   (=~ name "[*]temp-buffer")
-	   (=~ name "temp-buffer")
-       (=~ name "^async-process")
-       (=~ name "^async-formatter")
-       (=~ name "[*]ansi")
-       (=~ name "[*]Messages")
-
-       ;; Is not magit buffer.
-       (and (string-prefix-p "magit" name)
-			(not (file-name-extension name))))))
-
-  (centaur-tabs-mode 1)
-  (centaur-tabs-group-by-projectile-project)
-
-  (define-key evil-normal-state-map (kbd "g t") 'centaur-tabs-forward)
-  (define-key evil-normal-state-map (kbd "g T") 'centaur-tabs-backward))
-
-(straight-use-package '(evil-ts :type git :host github :repo "foxfriday/evil-ts"))
-
-(use-package evil-ts-obj
-  :straight (evil-ts-obj :type git :host github :repo "dvzubarev/evil-ts-obj")
-  :defer t
-  :config
-  (add-hook 'python-ts-mode-hook #'evil-ts-obj-mode))
-
-(use-package recentf
-  :config
-  (recentf-mode 1))
-
 (use-package treemacs
+  :ensure t
   :config
   (treemacs-follow-mode t)
   (treemacs-filewatch-mode t)
@@ -248,215 +251,84 @@
   (treemacs-hide-gitignored-files-mode nil))
 
 (use-package treemacs-evil
-  :after (treemacs evil)
-  :ensure t)
+  :ensure t
+  :after (treemacs))
 
 (use-package treemacs-projectile
-  :after (treemacs projectile)
-  :ensure t)
+  :ensure t
+  :after (treemacs))
 
 (use-package treemacs-icons-dired
-  :hook (dired-mode . treemacs-icons-dired-enable-once)
-  :ensure t)
+  :ensure t
+  :config
+  (add-hook 'dired-mode-hook 'treemacs-icons-dired-enable-once))
 
 (use-package treemacs-magit
-  :after (treemacs magit)
-  :ensure t)
-
-(use-package which-key
-  :config
-  (which-key-mode 1))
-
-(use-package lsp-mode
-  :init
-  (setq lsp-enable-links nil)
-
-  :hook ((lsp-mode . lsp-enable-which-key-integration)
-		 (python-mode . lsp))
-
-  :custom 
-  (lsp-headerline-breadcrumb-enable nil)
-  (lsp-headerline-breadcrumb-enable-diagnostics nil)
-  (lsp-headerline-breadcrumb-enable-symbol-numbers nil)
-  (lsp-headerline-breadcrumb-icons-enable nil)
-
-  :config
-  (evil-define-key 'normal lsp-mode-map (kbd "SPC l") lsp-command-map))
-
-(use-package lsp-ui
-  :commands lsp-ui-mode)
-
-(use-package lsp-treemacs
-  :commands lsp-treemacs-errors-list
-  :config
-  (lsp-treemacs-sync-mode 1))
-
-(use-package apheleia)
-
-(use-package lsp-jedi
-  :ensure t)
-
-(use-package ultra-scroll
-  :straight
-  (ultra-scroll :type git :host github :repo "jdtsmith/ultra-scroll")
-
-  :init
-  (setq scroll-conservatively 101
-		scroll-margin 0)
-  :config
-  (ultra-scroll-mode 1))
-
-;; Enable vertico
-(use-package vertico
-  :config
-  (vertico-mode)
-  (keymap-set vertico-map "?" #'minibuffer-completion-help)
-  (keymap-set vertico-map "M-RET" #'minibuffer-force-complete-and-exit)
-  (keymap-set vertico-map "M-TAB" #'minibuffer-complete))
-
-(use-package savehist
-  :init
-  (savehist-mode))
-
-(use-package emacs
-  :custom
-  (setq scroll-preserve-screen-position t)
-  (enable-recursive-minibuffers t)
-  (read-extended-command-predicate #'command-completion-default-include-p)
-  (minibuffer-prompt-properties
-   '(read-only t cursor-intangible t face minibuffer-prompt))
-
-  :init
-  (when (< emacs-major-version 31)
-    (advice-add #'completing-read-multiple :filter-args
-                (lambda (args)
-                  (cons (format "[CRM%s] %s"
-                                (string-replace "[ \t]*" "" crm-separator)
-                                (car args))
-                        (cdr args))))))
-
-(use-package marginalia
-  :bind (:map minibuffer-local-map
-			  ("M-A" . marginalia-cycle))
-  :init
-  (marginalia-mode))
-
-(use-package orderless
-  :custom
-  (completion-styles '(orderless basic))
-  (completion-category-defaults nil)
-  (completion-category-overrides '((file (styles partial-completion)))))
-
-(use-package marginalia
   :ensure t
-  :config
-  (marginalia-mode))
+  :after (magit))
 
-(use-package embark
+(use-package eglot)
+
+(use-package apheleia
   :ensure t
-  :bind
-  (("C-." . embark-act)         
-   ("C-;" . embark-dwim)        
-   ("C-h B" . embark-bindings)) 
-
-  :init
-  (setq prefix-help-command #'embark-prefix-help-command)
-
-  :config
-  (add-to-list 'display-buffer-alist
-               '("\\`\\*Embark Collect \\(Live\\|Completions\\)\\*"
-                 nil
-                 (window-parameters (mode-line-format . none)))))
-
-(use-package embark-consult
-  :ensure t
-  :hook
-  (embark-collect-mode . consult-preview-at-point-mode))
-
-(use-package consult
-  :bind (("M-X" . consult-mode-command)
-         ("C-c h" . consult-history)
-         ("C-c k" . consult-kmacro)
-         ("C-c m" . consult-man)
-         ("C-c i" . consult-info)
-         ([remap Info-search] . consult-info)
-         ("C-x M-:" . consult-complex-command)     ;; orig. repeat-complex-command
-         ("C-x b" . consult-buffer)                ;; orig. switch-to-buffer
-         ("C-x 4 b" . consult-buffer-other-window) ;; orig. switch-to-buffer-other-window
-         ("C-x 5 b" . consult-buffer-other-frame)  ;; orig. switch-to-buffer-other-frame
-         ("C-x t b" . consult-buffer-other-tab)    ;; orig. switch-to-buffer-other-tab
-         ("C-x r b" . consult-bookmark)            ;; orig. bookmark-jump
-         ("C-x p b" . consult-project-buffer)      ;; orig. project-switch-to-buffer
-         ("M-#" . consult-register-load)
-         ("M-'" . consult-register-store)          ;; orig. abbrev-prefix-mark (unrelated)
-         ("C-M-#" . consult-register)
-         ("M-y" . consult-yank-pop)                ;; orig. yank-pop
-         ("M-g e" . consult-compile-error)
-         ("M-g f" . consult-flymake)               ;; Alternative: consult-flycheck
-         ("M-g g" . consult-goto-line)             ;; orig. goto-line
-         ("M-g M-g" . consult-goto-line)           ;; orig. goto-line
-         ("M-g o" . consult-outline)               ;; Alternative: consult-org-heading
-         ("M-g m" . consult-mark)
-         ("M-g k" . consult-global-mark)
-         ("M-g i" . consult-imenu)
-         ("M-g I" . consult-imenu-multi)
-         ("M-s d" . consult-find)                  ;; Alternative: consult-fd
-         ("M-s c" . consult-locate)
-         ("M-s g" . consult-grep)
-         ("M-s G" . consult-git-grep)
-         ("M-s /" . consult-ripgrep)
-         ("M-s l" . consult-line)
-         ("M-s L" . consult-line-multi)
-         ("M-s k" . consult-keep-lines)
-         ("M-s u" . consult-focus-lines)
-         ("M-s e" . consult-isearch-history)
-
-         :map isearch-mode-map
-         ("M-e" . consult-isearch-history)         ;; orig. isearch-edit-string
-         ("M-s e" . consult-isearch-history)       ;; orig. isearch-edit-string
-         ("M-s l" . consult-line)                  ;; needed by consult-line to detect isearch
-         ("M-s L" . consult-line-multi)            ;; needed by consult-line to detect isearch
-
-         :map minibuffer-local-map
-         ("M-s" . consult-history)                 ;; orig. next-matching-history-element
-         ("M-r" . consult-history))                ;; orig. previous-matching-history-element
-
-
-  :hook (completion-list-mode . consult-preview-at-point-mode)
-
-  :init
-  (advice-add #'register-preview :override #'consult-register-window)
-  (setq register-preview-delay 0.5)
-  (setq xref-show-xrefs-function #'consult-xref
-        xref-show-definitions-function #'consult-xref)
-
-  :config
-  (consult-customize
-   consult-theme :preview-key '(:debounce 0.2 any)
-   consult-ripgrep consult-git-grep consult-grep consult-man
-   consult-bookmark consult-recent-file consult-xref
-   consult--source-bookmark consult--source-file-register
-   consult--source-recent-file consult--source-project-recent-file
-   :preview-key '(:debounce 0.4 any))
-
-  (setq consult-narrow-key "<"))
+  :defer 1000)
 
 (use-package dumb-jump
+  :ensure t
   :config
   (add-hook 'xref-backend-functions #'dumb-jump-xref-activate)
   (setq xref-show-definitions-function #'xref-show-definitions-completing-read))
 
 (use-package auto-virtualenv
+  :ensure t
+  :defer 1000
   :config
   (setq auto-virtualenv-verbose t)
-  (auto-virtualenv-setup))
+  (add-hook 'python-mode-hook 'auto-virtualenv-setup))
 
-(use-package beacon
-  :config
-  (beacon-mode 1))
+(use-package elixir-mode
+  :ensure t)
 
-;; use-package with package.el:
-(use-package dashboard
+(use-package mix
+  :ensure t
+  :hook (elixir-mode . mix-minor-mode))
+
+(use-package web-mode
   :ensure t
   :config
-  (dashboard-setup-startup-hook))
+  (require 'web-mode)
+  (add-to-list 'auto-mode-alist '("\\.phtml\\'" . web-mode))
+  (add-to-list 'auto-mode-alist '("\\.tpl\\.php\\'" . web-mode))
+  (add-to-list 'auto-mode-alist '("\\.[agj]sp\\'" . web-mode))
+  (add-to-list 'auto-mode-alist '("\\.as[cp]x\\'" . web-mode))
+  (add-to-list 'auto-mode-alist '("\\.erb\\'" . web-mode))
+  (add-to-list 'auto-mode-alist '("\\.mustache\\'" . web-mode))
+  (add-to-list 'auto-mode-alist '("\\.djhtml\\'" . web-mode)))
+
+(use-package exunit
+  :ensure t
+  :hook (elixir-mode . exunit-mode)
+  :config
+  (general-define-key :keymaps 'elixir-mode-map
+					  :states 'normal
+					  :prefix "SPC m"
+					  "t" (general-simulate-key "C-c ,")))
+
+(use-package symbols-outline
+  :after (evil eglot)
+  :config
+  (evil-set-initial-state 'symbols-outline-mode 'emacs)
+  (general-define-key
+   :states 'normal
+   :prefix "SPC l"
+   "s" 'symbols-outline-show)
+  (setq symbols-outline-fetch-fn #'symbols-outline-lsp-fetch)
+  (setq symbols-outline-window-position 'left)
+  (symbols-outline-follow-mode))
+
+(use-package which-key
+  :defer nil
+  :config
+  (which-key-mode))
+
+(use-package ivy-hydra)

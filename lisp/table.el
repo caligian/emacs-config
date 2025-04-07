@@ -25,6 +25,8 @@
   (not (funcall 'empty? x len-fn)))
 
 (defalias '!empty? 'not-empty?)
+(defalias 'not-empty-p 'not-empty?)
+(defalias 'empty-p 'empty?)
 
 (defun -get% (h ks)
   (let* ((k (car ks))

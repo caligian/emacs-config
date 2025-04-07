@@ -21,13 +21,14 @@
 (cl-defmethod async-process--create-shell-command ((proc async-process))
   (async-process--create-temp-file proc)
   (with-slots (command stdin-file) proc
-	(let* (cmd)
+	(let* ((cmd nil)
+		   (shellcmd (or (cget :shell-command) "bash")))
 	  (if (listp command)
 		  (setq cmd (string-join command " "))
 		(setq cmd (%. proc 'command)))
 	  (if (and stdin-file (file-exists-p stdin-file))
-		  (setq cmd (list "zsh" "-c" (concat "cat " stdin-file " | " cmd)))
-		(setq cmd (list "zsh" "-c" cmd)))
+		  (setq cmd (list shellcmd "-c" (concat "cat " stdin-file " | " cmd)))
+		(setq cmd (list shellcmd "-c" cmd)))
 	  (%! proc 'command cmd)
 	  cmd)))
 
@@ -49,12 +50,13 @@
 (cl-defmethod async-process--create-filter ((proc async-process))
   `(with-slots (process stdout) ,proc
 	 (lambda (_ s)
-	   (%! ,proc 'stdout (append stdout (split-string s "\n\r"))))))
+	   (%! ,proc 'stdout (append stdout (split-string s "\n"))))))
 
 (cl-defmethod async-process--create-sentinel ((proc async-process))
   `(with-slots (process on-exit on-success on-failure stdin-file) ,proc
 	 (lambda (_ e)
 	   (when-let* ((exit-status (process-exit-status process)))
+		 (%! ,proc 'exit-status exit-status)
 		 (when (and (string? stdin-file)
 					(=~ stdin-file "async-process-stdin-"))
 		   (delete-file stdin-file)
@@ -83,9 +85,12 @@
 
 (defun async-process-init (&rest args)
   (let* ((proc (apply #'async-process args))
-		 (name (%. proc 'name)))
-	(when name
-	  (%! user-async-processes name proc))
+		 (name (%. proc 'name))
+		 (name (if (not name)
+				   (make-temp-name "async-process-")
+				 name)))
+	(%! user-async-processes name proc)
+	(%! proc 'name name)
 	(async-process--create-shell-command proc)
 	proc))
 
@@ -94,6 +99,7 @@
 (cl-defmethod async-process-live? ((proc async-process))
   (with-slots (process) proc
 	(and process (process-live-p process))))
+
 
 (cl-defmethod async-process-start ((proc async-process))
   (if (async-process-live? proc)
@@ -138,15 +144,3 @@
 (cl-defmethod async-process-stop ((proc async-process))
   (when (async-process-live? proc)
 	(stop-process proc)))
-
-(defmacro with-shell-output! (cmd &rest body)
-  (declare (indent 1))
-  (let* ((on-success (append '(lambda (output)) body))
-		 (on-success (eval on-success)))
-	`(async-process-start
-	  (async-process!
-	   :command ',cmd
-	   :name (make-temp-name "*")
-	   :on-success (lambda (proc)
-					 (with-slots (stdout) proc
-					   ,@body))))))

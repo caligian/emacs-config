@@ -51,73 +51,45 @@
 							 (and (=~ x "el$")
 								  (!~ x "^[%#~.]" "[%#~.]$")))))))
 
-
-(defun path-exists-in-dir? (dir &rest substrings)
-  (cl-labels ((exists? (r fs)
-				(if-let* ((f (car fs)))
-					(if (cl-search r f)
-						t
-					  (exists? r (cdr fs))))))
-    (if-let* ((r (car substrings)))
-		(if (exists? r (if (listp dir) dir (list-files dir t)))
-			dir
-		  (apply #'path-exists-in-dir? dir (cdr substrings))))))
+(cl-defun path-exists-in-dir? (dir substrings &optional (depth 4))
+  (let ((substrings (->list substrings)))
+	(cl-labels ((file-exists? (d)
+				  (cl-loop for s in substrings
+						   when (file-exists-p (format "%s%s" d s))
+						   return d))
+				(recurse (d curdepth)
+				  (cond
+				   ((= curdepth (or depth 4))
+					nil)
+				   ((file-exists? d)
+					d)
+				   (t
+					(recurse (file-name-parent-directory d) (1+ curdepth))))))
+	  (recurse dir 0))))
 
 (defalias 'path-exists-in-dir-p 'path-exists-in-dir?)
-
-(defun path-exists-in-subdir? (dir substrings &optional depth current-depth)
-  (let* ((depth (or depth 5))
-		 (current-depth (or current-depth 1)))
-	(when (and (< current-depth depth)
-			   (not (equal dir "/")))
-	  (if (not (apply #'path-exists-in-dir? dir substrings))
-		  (path-exists-in-subdir?
-		   (dirname dir)
-		   substrings
-		   depth
-		   (+ current-depth 1))
-		dir))))
-
-(defalias 'path-exists-in-subdir-p 'path-exists-in-subdir?)
-
-(cl-defun find-buffer-workspace (buf &optional substrings depth &key (cached t) map)
-  (if-let* ((buf (or buf (current-buffer)))
-			(use-cached? cached)
-			(ws (local-config-get :buffer-workspaces buf)))
-	  ws
-	(let* ((mm (buffer-major-mode (or buf (current-buffer))))
-		   (mm-config (local-config-get :modes mm))
-		   (substrings (or substrings (%. mm-config 'workspace) '(".git")))
-		   (depth (or depth (%. mm-config 'workspace-check-depth) 4))
-		   (found (path-exists-in-subdir? (dirname buf) substrings depth)))
-	  (when found
-		(local-config-set :buffer-workspaces buf found)
-		(local-config-set :workspace-buffers found buf)
-		(if map
-			(funcall found (list :buffer buf :workspace map))
-		  found)))))
 
 (cl-defun find-buffer-workspace (buf
 								 &optional
 								 (substrings '(".git"))
 								 (depth 4)
-								 &key
 								 (cached t)
 								 map)
-  (let* ((buf (or buf (current-buffer)))
-		 (exists (and cached (local-config-get :buffer-workspaces buf))))
-	(if exists
-		exists
-	  (when-let* ((mm-config (local-config-get :modes (buffer-major-mode buf)))
-				  (substrings (or substrings (%. mm-config 'workspace) '(".git")))
-				  (depth (or depth (%. mm-config 'workspace-check-depth) 4))
-				  (found (path-exists-in-subdir? (dirname buf) substrings depth)))
-		(when found
-		  (local-config-set :buffer-workspaces buf found)
-		  (local-config-set :workspace-buffers found buf)
-		  (if map
-			  (funcall found (list :buffer buf :workspace map))
-			found))))))
+  (if-let* ((buf (or buf (current-buffer)))
+			(use-cached? cached)
+			(ws (cget :buffer-workspaces buf)))
+	  ws
+	(let* ((mm (buffer-major-mode (or buf (current-buffer))))
+		   (mm-config (cget :modes mm))
+		   (substrings (or substrings (%. mm-config 'workspace) '(".git")))
+		   (depth (or depth (%. mm-config 'workspace-check-depth) 4))
+		   (found (path-exists-in-dir? (dirname buf) substrings depth)))
+	  (when found
+		(cset :buffer-workspaces buf found)
+		(cset :workspace-buffers found buf)
+		(if map
+			(funcall found (list :buffer buf :workspace map))
+		  found)))))
 
 (defun workspace-buffer? (ws buf)
   (when-let* ((buf (if (string? buf)
@@ -126,26 +98,6 @@
 	(%. workspace-buffers ws buf)))
 
 (defalias 'workspace-buffer-p 'workspace-buffer?)
-
-(defun make-path (lookup-alist &rest words)
-  (let* ((lookup-alist (append lookup-alist (local-config-get :path-lookup-alist)))
-		 (expanded (cl-loop for word in words
-							collect (cond
-									 ((stringp word)
-									  word)
-									 ((listp word)
-									  (eval word))
-									 ((symbolp word)
-									  (if-let* ((exists (%. lookup-alist word)))
-										  (if (listp exists) (eval exists) exists)
-										(error "SYMBOL does not exist in :path-lookup-alist: %s" word)))
-									 (t (error "FORM does not eval to string: %s" word))))))
-	(replace-regexp-in-string
-	 "/\\{2,\\}" "/"
-	 (string-join expanded "/"))))
-
-(cl-defmacro path* (words &key lookup-alist)
-  (apply 'make-path lookup-alist words))
 
 (defmacro if-in-workspace (buf &rest body)
   (declare (indent 1))
