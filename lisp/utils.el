@@ -185,3 +185,18 @@
 
 (defmacro substitute (form exp)
   `(expression ',form ',exp)) 
+
+(defun closure->lambda (fn)
+  (when (closurep fn)
+	(eval `(lambda ,@(nthcdr 2 fn)))))
+
+(defmacro deflambda (args &rest body)
+  (declare (indent 1))
+  `(closure->lambda (lambda ,args ,@body)))
+
+(defun lambdap (fn)
+  (and (listp fn)
+	   (functionp fn)
+	   (eq (car fn) 'lambda) fn))
+
+(defalias 'lambda? 'lambdap)
